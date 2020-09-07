@@ -89,7 +89,7 @@ func main() {
 	log.Entry(ctx).Infof("Config: %#v", config)
 
 	// ********************************************************************************
-	log.Entry(ctx).Infof("retrieving svid, check spire agent logs if this fails")
+	log.Entry(ctx).Infof("retrieving svid, check spire agent logs if this is the last line you see")
 	// ********************************************************************************
 	source, err := workloadapi.NewX509Source(ctx)
 	if err != nil {
