@@ -23,6 +23,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	"github.com/kelseyhightower/envconfig"
@@ -50,7 +52,9 @@ type Config struct {
 	ListenOn         url.URL       `default:"unix:///listen.on.socket" desc:"url to listen on" split_words:"true"`
 	ConnectTo        url.URL       `default:"unix:///connect.to.socket" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime time.Duration `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
-	CidrPrefix       string        `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from"`
+
+	EndpointName string `default:"icmp-responder-nse" desc:"url to the local registry to register this NSE"`
+	CidrPrefix   string `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from"`
 }
 
 func main() {
@@ -71,10 +75,10 @@ func main() {
 
 	// get config from environment
 	config := &Config{}
-	if err := envconfig.Usage("nsm", config); err != nil {
+	if err := envconfig.Usage("nse", config); err != nil {
 		logrus.Fatal(err)
 	}
-	if err := envconfig.Process("nsm", config); err != nil {
+	if err := envconfig.Process("nse", config); err != nil {
 		logrus.Fatalf("error processing config from env: %+v", err)
 	}
 
@@ -117,6 +121,35 @@ func main() {
 	responderEndpoint.Register(server)
 	srvErrCh := grpcutils.ListenAndServe(ctx, &config.ListenOn, server)
 	exitOnErr(ctx, cancel, srvErrCh)
+
+	var nsmTarget string
+	switch scheme := config.ConnectTo.Scheme; scheme {
+	case "tcp":
+		nsmTarget = config.ConnectTo.Host
+	default:
+		nsmTarget = config.ConnectTo.String()
+	}
+
+	cc, err := grpc.DialContext(ctx,
+		nsmTarget,
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()))))
+	if err != nil {
+		log.Entry(ctx).Fatalf("error establishing grpc connection to registry server %+v", err)
+	}
+
+	nse, err := registry.NewNetworkServiceEndpointRegistryClient(cc).Register(context.Background(), &registry.NetworkServiceEndpoint{
+		Name:                config.EndpointName,
+		NetworkServiceNames: []string{config.Name},
+		ExpirationTime:      &timestamp.Timestamp{Seconds: time.Now().Add(time.Hour * 24).Unix()},
+	})
+
+	logrus.Infof("nse: %+v", nse)
+
+	if err != nil {
+		log.Entry(ctx).Fatalf("unable to register nse %+v", err)
+	}
+
 	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
 
 	<-ctx.Done()
