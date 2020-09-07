@@ -43,7 +43,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 )
 
-// config
+// Config holds configuration parameters from environment variables
 type Config struct {
 	Name             string        `default:"icmp-server" desc:"Name of ICMP Server"`
 	BaseDir          string        `default:"./" desc:"base directory" split_words:"true"`
@@ -103,7 +103,7 @@ func main() {
 	ipamServer := point2pointipam.NewServer(prefixes...)
 
 	// icmp-server network service endpoint
-	endpoint := endpoint.NewServer(
+	responderEndpoint := endpoint.NewServer(
 		ctx,
 		config.Name,
 		authorize.NewServer(),
@@ -114,7 +114,7 @@ func main() {
 	// create grpc server
 	// TODO add serveroptions for tracing
 	server := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()))))
-	endpoint.Register(server)
+	responderEndpoint.Register(server)
 	srvErrCh := grpcutils.ListenAndServe(ctx, &config.ListenOn, server)
 	exitOnErr(ctx, cancel, srvErrCh)
 	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
