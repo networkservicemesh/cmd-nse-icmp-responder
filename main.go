@@ -57,11 +57,15 @@ type Config struct {
 }
 
 func main() {
+	// ********************************************************************************
 	// setup context to catch signals
+	// ********************************************************************************
 	ctx := signalctx.WithSignals(context.Background())
 	ctx, cancel := context.WithCancel(ctx)
 
+	// ********************************************************************************
 	// setup logging
+	// ********************************************************************************
 	logrus.SetFormatter(&nested.Formatter{})
 	logrus.SetLevel(logrus.TraceLevel)
 	ctx = log.WithField(ctx, "cmd", os.Args[0])
@@ -72,7 +76,9 @@ func main() {
 
 	starttime := time.Now()
 
+	// ********************************************************************************
 	// get config from environment
+	// ********************************************************************************
 	config := &Config{}
 	if err := envconfig.Usage("nse", config); err != nil {
 		logrus.Fatal(err)
@@ -83,7 +89,9 @@ func main() {
 
 	log.Entry(ctx).Infof("Config: %#v", config)
 
+	// ********************************************************************************
 	// get x509 source
+	// ********************************************************************************
 	source, err := workloadapi.NewX509Source(ctx)
 	if err != nil {
 		logrus.Fatalf("error getting x509 source: %+v", err)
@@ -105,7 +113,9 @@ func main() {
 
 	ipamServer := point2pointipam.NewServer(prefixes...)
 
+	// ********************************************************************************
 	// icmp-server network service endpoint
+	// ********************************************************************************
 	responderEndpoint := endpoint.NewServer(
 		ctx,
 		config.Name,
@@ -114,8 +124,10 @@ func main() {
 		ipamServer,
 		kernel.NewServer())
 
+	// ********************************************************************************
 	// create grpc server
 	// TODO add serveroptions for tracing
+	// ********************************************************************************
 	server := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()))))
 	responderEndpoint.Register(server)
 	srvErrCh := grpcutils.ListenAndServe(ctx, &config.ListenOn, server)
@@ -129,6 +141,9 @@ func main() {
 		nsmTarget = config.ConnectTo.String()
 	}
 
+	// ********************************************************************************
+	// Register NSE with NSM
+	// ********************************************************************************
 	cc, err := grpc.DialContext(ctx,
 		nsmTarget,
 		grpc.WithBlock(),
@@ -151,6 +166,9 @@ func main() {
 
 	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
 
+	// ********************************************************************************
+	// wait until server is done
+	// ********************************************************************************
 	<-ctx.Done()
 }
 
