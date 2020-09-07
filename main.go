@@ -101,6 +101,9 @@ func main() {
 	}
 	logrus.Infof("SVID: %q", svid.ID)
 
+	// ********************************************************************************
+	// create ipam for icmp server
+	// ********************************************************************************
 	_, ipnet, err := net.ParseCIDR(config.CidrPrefix)
 	if err != nil {
 		log.Entry(ctx).Fatalf("error parsing cidr: %+v", err)
