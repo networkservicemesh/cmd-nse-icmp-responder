@@ -23,10 +23,8 @@ import (
 	"os"
 	"time"
 
+	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
-
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
@@ -34,12 +32,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	nested "github.com/antonfisher/nested-logrus-formatter"
+	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/kernel"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
