@@ -1,4 +1,4 @@
-module github.com/networkservicemesh/cmd-template
+module github.com/networkservicemesh/cmd-nse-icmp-responder
 
 go 1.14
 
