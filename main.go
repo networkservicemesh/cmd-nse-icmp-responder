@@ -86,7 +86,6 @@ func main() {
 	if err := envconfig.Process("nse", config); err != nil {
 		logrus.Fatalf("error processing config from env: %+v", err)
 	}
-
 	log.Entry(ctx).Infof("Config: %#v", config)
 
 	// ********************************************************************************
@@ -157,13 +156,11 @@ func main() {
 		NetworkServiceNames: []string{config.Name},
 		ExpirationTime:      &timestamp.Timestamp{Seconds: time.Now().Add(time.Hour * 24).Unix()},
 	})
-
 	logrus.Infof("nse: %+v", nse)
 
 	if err != nil {
 		log.Entry(ctx).Fatalf("unable to register nse %+v", err)
 	}
-
 	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
 
 	// ********************************************************************************
