@@ -51,9 +51,8 @@ type Config struct {
 	ListenOn         url.URL       `default:"unix:///listen.on.socket" desc:"url to listen on" split_words:"true"`
 	ConnectTo        url.URL       `default:"unix:///connect.to.socket" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime time.Duration `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
-
-	EndpointName string `default:"icmp-responder-nse" desc:"url to the local registry to register this NSE"`
-	CidrPrefix   string `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from"`
+	ServiceName      string        `default:"icmp-responder" desc:"Name of providing service"`
+	CidrPrefix       string        `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from"`
 }
 
 func main() {
@@ -166,8 +165,17 @@ func main() {
 		log.Entry(ctx).Fatalf("error establishing grpc connection to registry server %+v", err)
 	}
 
+	_, err = registry.NewNetworkServiceRegistryClient(cc).Register(context.Background(), &registry.NetworkService{
+		Name:    config.ServiceName,
+		Payload: "IP",
+	})
+
+	if err != nil {
+		log.Entry(ctx).Fatalf("unable to register ns %+v", err)
+	}
+
 	nse, err := registry.NewNetworkServiceEndpointRegistryClient(cc).Register(context.Background(), &registry.NetworkServiceEndpoint{
-		Name:                config.EndpointName,
+		Name:                config.Name,
 		NetworkServiceNames: []string{config.Name},
 		ExpirationTime:      &timestamp.Timestamp{Seconds: time.Now().Add(time.Hour * 24).Unix()},
 	})
