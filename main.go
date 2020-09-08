@@ -74,10 +74,21 @@ func main() {
 		log.Entry(ctx).Infof("%s", err)
 	}
 
+	// enumerating phases
+	log.Entry(ctx).Infof("there are 6 phases which will be executed followed by a success message:")
+	log.Entry(ctx).Infof("the phases include:")
+	log.Entry(ctx).Infof("1: get config from environment")
+	log.Entry(ctx).Infof("2: retrieve spiffe svid")
+	log.Entry(ctx).Infof("3: create icmp server ipam")
+	log.Entry(ctx).Infof("4: create icmp server nse")
+	log.Entry(ctx).Infof("5: create grpc and mount nse")
+	log.Entry(ctx).Infof("6: register nse with nsm")
+	log.Entry(ctx).Infof("a final success message with start time duration")
+
 	starttime := time.Now()
 
 	// ********************************************************************************
-	// get config from environment
+	log.Entry(ctx).Infof("executing phase 1: get config from environment")
 	// ********************************************************************************
 	config := &Config{}
 	if err := envconfig.Usage("nse", config); err != nil {
@@ -89,7 +100,7 @@ func main() {
 	log.Entry(ctx).Infof("Config: %#v", config)
 
 	// ********************************************************************************
-	// get x509 source
+	log.Entry(ctx).Infof("executing phase 2: retrieving svid, check spire agent logs if this is the last line you see")
 	// ********************************************************************************
 	source, err := workloadapi.NewX509Source(ctx)
 	if err != nil {
@@ -99,10 +110,10 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("error getting x509 svid: %+v", err)
 	}
-	logrus.Infof("SVID: %q", svid.ID)
+	log.Entry(ctx).Infof("SVID: %q", svid.ID)
 
 	// ********************************************************************************
-	// create ipam for icmp server
+	log.Entry(ctx).Infof("executing phase 3: creating icmp server ipam")
 	// ********************************************************************************
 	_, ipnet, err := net.ParseCIDR(config.CidrPrefix)
 	if err != nil {
@@ -116,7 +127,7 @@ func main() {
 	ipamServer := point2pointipam.NewServer(prefixes...)
 
 	// ********************************************************************************
-	// icmp-server network service endpoint
+	log.Entry(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
 	responderEndpoint := endpoint.NewServer(
 		ctx,
@@ -127,13 +138,14 @@ func main() {
 		kernel.NewServer())
 
 	// ********************************************************************************
-	// create grpc server
+	log.Entry(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
 	// TODO add serveroptions for tracing
 	// ********************************************************************************
 	server := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()))))
 	responderEndpoint.Register(server)
 	srvErrCh := grpcutils.ListenAndServe(ctx, &config.ListenOn, server)
 	exitOnErr(ctx, cancel, srvErrCh)
+	log.Entry(ctx).Infof("grpc server started")
 
 	var nsmTarget string
 	switch scheme := config.ConnectTo.Scheme; scheme {
@@ -144,7 +156,7 @@ func main() {
 	}
 
 	// ********************************************************************************
-	// Register NSE with NSM
+	log.Entry(ctx).Infof("executing phase 6: register nse with nsm")
 	// ********************************************************************************
 	cc, err := grpc.DialContext(ctx,
 		nsmTarget,
@@ -164,11 +176,11 @@ func main() {
 	if err != nil {
 		log.Entry(ctx).Fatalf("unable to register nse %+v", err)
 	}
-	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
 
 	// ********************************************************************************
-	// wait until server is done
+	log.Entry(ctx).Infof("startup completed in %v", time.Since(starttime))
 	// ********************************************************************************
+	// wait for server to exit
 	<-ctx.Done()
 }
 
