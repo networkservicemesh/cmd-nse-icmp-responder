@@ -1,6 +1,6 @@
 module github.com/networkservicemesh/cmd-nse-icmp-responder
 
-go 1.14
+go 1.15
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.2.0
