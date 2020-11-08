@@ -123,8 +123,6 @@ func main() {
 		ipnet,
 	}
 
-	ipamServer := point2pointipam.NewServer(prefixes...)
-
 	// ********************************************************************************
 	log.Entry(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
@@ -133,7 +131,7 @@ func main() {
 		config.Name,
 		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
-		ipamServer,
+		point2pointipam.NewServer(prefixes...),
 		kernel.NewServer())
 
 	// ********************************************************************************
@@ -146,20 +144,13 @@ func main() {
 	exitOnErr(ctx, cancel, srvErrCh)
 	log.Entry(ctx).Infof("grpc server started")
 
-	var nsmTarget string
-	switch scheme := config.ConnectTo.Scheme; scheme {
-	case "tcp":
-		nsmTarget = config.ConnectTo.Host
-	default:
-		nsmTarget = config.ConnectTo.String()
-	}
-
 	// ********************************************************************************
 	log.Entry(ctx).Infof("executing phase 6: register nse with nsm")
 	// ********************************************************************************
 	cc, err := grpc.DialContext(ctx,
-		nsmTarget,
+		grpcutils.URLToTarget(&config.ConnectTo),
 		grpc.WithBlock(),
+		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()))))
 	if err != nil {
 		log.Entry(ctx).Fatalf("error establishing grpc connection to registry server %+v", err)
@@ -176,7 +167,8 @@ func main() {
 
 	nse, err := registry.NewNetworkServiceEndpointRegistryClient(cc).Register(context.Background(), &registry.NetworkServiceEndpoint{
 		Name:                config.Name,
-		NetworkServiceNames: []string{config.Name},
+		NetworkServiceNames: []string{config.ServiceName},
+		Url:                 config.ListenOn.String(),
 		ExpirationTime:      &timestamp.Timestamp{Seconds: time.Now().Add(time.Hour * 24).Unix()},
 	})
 	logrus.Infof("nse: %+v", nse)

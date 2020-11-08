@@ -9,8 +9,11 @@ RUN dl https://github.com/spiffe/spire/releases/download/v0.11.1/spire-0.11.1-li
 
 FROM go as build
 WORKDIR /build
+COPY go.mod go.sum ./
+COPY internal ./internal
+RUN go build ./internal/pkg/imports
 COPY . .
-RUN go build -o /bin/app .
+RUN go build -o /bin/nse-icmp-responder .
 
 FROM build as test
 CMD go test -test.v ./...
@@ -19,5 +22,5 @@ FROM test as debug
 CMD dlv -l :40000 --headless=true --api-version=2 test -test.v ./...
 
 FROM alpine as runtime
-COPY --from=build /bin/app /bin/app
-CMD /bin/app
+COPY --from=build /bin/nse-icmp-responder /bin/nse-icmp-responder
+CMD /bin/nse-icmp-responder
