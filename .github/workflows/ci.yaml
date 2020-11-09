@@ -12,12 +12,12 @@ jobs:
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v1
-      - name: Install yamllint
-        run: pip install --user yamllint
-      - name: Run yamllint
-        run: ~/.local/bin/yamllint -c .yamllint.yml --strict .
+      - name: yaml-lint
+        uses: ibiqlik/action-yamllint@v1
+        with:
+          config_file: .yamllint.yml
+          strict: true
+
   shellcheck:
     name: shellcheck
     runs-on: ubuntu-latest
@@ -25,49 +25,34 @@ jobs:
       - uses: actions/checkout@v2
       - name: shellcheck
         uses: fkautz/shell-linter@v1.0.1
+
   build:
     name: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v1
         with:
-          go-version: 1.13.4
-      - run: |
-          go build -race  ./...
-  build-win:
-    name: build-win
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.13.4
-      - run: |
-          go build -race  ./...
-  build-osx:
-    name: build-osx
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.13.4
-      - run: |
-          go build -race  ./...
+          go-version: 1.15
+      - name: Build
+        run: go build -race ./...
+
   golangci-lint:
     name: golangci-lint
     runs-on: ubuntu-latest
-    env:
-      GOLANGCI_LINT_CONTAINER: golangci/golangci-lint:v1.28.3
     if: github.repository != 'networkservicemesh/cmd-template'
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Pull golangci-lint docker container
-        run: docker pull ${GOLANGCI_LINT_CONTAINER}
-      - name: Run golangci-lint
-        run: docker run --rm -v $(pwd):/app -w /app ${GOLANGCI_LINT_CONTAINER} golangci-lint run
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.31
 
   excludeFmtErrorf:
     name: exclude fmt.Errorf
@@ -87,12 +72,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Restrict dependencies on github.com/networkservicemesh/*
+        env:
+          ALLOWED_REPOSITORIES: "sdk, api, sdk-k8s, sdk-vppagent, sdk-sriov"
         run: |
-          for i in $(grep github.com/networkservicemesh/ go.mod |grep -v '^module' | sed 's;.*\(github.com\/networkservicemesh\/[a-zA-z\/]*\).*;\1;g' | sort -u);do
-            if [ "${i}" != "github.com/networkservicemesh/sdk" ] && [ "${i}" != "github.com/networkservicemesh/api" ]; then
+          for i in $(grep github.com/networkservicemesh/ go.mod | grep -v '^module' | sed 's;.*\(github.com\/networkservicemesh\/[^ ]*\).*;\1;g');do
+            if ! [ "$(echo ${ALLOWED_REPOSITORIES} | grep ${i#github.com/networkservicemesh/})" ]; then
               echo Dependency on "${i}" is forbidden
               exit 1
-            fi
+            fi;
           done
 
   checkgomod:
@@ -102,7 +89,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.13.4
+          go-version: 1.15
       - run: go mod tidy
       - name: Check for changes in go.mod or go.sum
         run: |
@@ -119,7 +106,7 @@ jobs:
           version: '3.8.0'
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.13
+          go-version: 1.15
       - name: Install proto-gen-go
         run: go get -u github.com/golang/protobuf/protoc-gen-go@v1.3.3
       - name: Install proto-gen-go
@@ -141,11 +128,7 @@ jobs:
         run: |
           grep ^replace go.mod || exit 0
           exit 1
-  captureRunEnv:
-    name: Capture CI Run Env
-    runs-on: ubuntu-latest
-    steps:
-      - run: printenv
+
   docker:
     name: Docker Build & Test
     runs-on: ubuntu-latest
@@ -154,18 +137,17 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.13.4
+          go-version: 1.15
       - name: Build container
         run: docker build .
       - name: Run tests
-        run: docker run --rm $(docker build -q . --target test)
+        run: docker run --privileged --rm $(docker build -q . --target test)
       - name: Find merged PR
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: jwalton/gh-find-current-pr@v1
         id: findPr
         with:
           github-token: ${{ github.token }}
-
       - name: Publish Image
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && success() && steps.findPr.outputs.number
         uses: matootie/github-docker@v3.0.0
@@ -175,13 +157,13 @@ jobs:
             pr-${{ steps.findPr.outputs.pr }}
             commit-${{ github.sha }}
             latest
+
   pushImage:
     name: Push docker image
     runs-on: ubuntu-latest
     env:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       DOCKER_USER: ${{ secrets.DOCKER_LOGIN }}
-      TAG: master
       ORG: networkservicemeshci
       CGO_ENABLED: 0
       NAME: ${{ github.event.repository.name }}
@@ -192,14 +174,16 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.13.4
+          go-version: 1.15
       - name: Build ${NAME} image
-        run: docker build . -t "${ORG}/${NAME}:${TAG}" --target runtime
+        run: docker build . -t "${ORG}/${NAME}:${GITHUB_SHA::8}" --target runtime
       - name: Push ${NAME} image
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-          docker push "${ORG}/${NAME}:${TAG}"
-          docker image rm "${ORG}/${NAME}:${TAG}"
+          docker push "${ORG}/${NAME}:${GITHUB_SHA::8}"
+          docker image rm "${ORG}/${NAME}:${GITHUB_SHA::8}"
+          docker push "${ORG}/${NAME}:latest"
+          docker image rm "${ORG}/${NAME}:latest"
 
   automerge:
     name: automerge
@@ -222,3 +206,67 @@ jobs:
         with:
           GITHUB_LOGIN: nsmbot
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-integration-k8s-kind:
+    needs:
+      - automerge
+    name: Update integration-k8s-kind
+    runs-on: ubuntu-latest
+    if: github.repository != 'networkservicemesh/cmd-template' && github.actor == 'nsmbot' && github.base_ref == 'master' && github.event_name == 'pull_request'
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v2
+        with:
+          path: ${{ github.repository }}S
+          ref: master
+          fetch-depth: '0'
+      - name: Create commit message
+        working-directory: ${{ github.repository }}
+        run: |
+          echo "Update application version to latest version from ${{ github.repository }}@master ${{ github.repository }}#${{ github.event.number }}" >> /tmp/commit-message
+          echo "" >> /tmp/commit-message
+          echo "${{ github.repository }} PR link: https://github.com/${{ github.repository }}/pull/${{ github.event.number }}" >> /tmp/commit-message
+          echo "" >> /tmp/commit-message
+          echo "${{ github.repository }} commit message:" >> /tmp/commit-message
+          git log -1 >> /tmp/commit-message
+          echo "Commit Message:"
+          cat /tmp/commit-message
+      - name: Checkout networkservicemesh/integration-k8s-kind
+        uses: actions/checkout@v2
+        with:
+          path: networkservicemesh/integration-k8s-kind
+          repository: networkservicemesh/integration-k8s-kind
+          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+      - uses: benjlevesque/short-sha@v1.1
+        id: short-sha
+        with:
+          length: 8
+      - name: Find and Replace version
+        uses: jacobtomlinson/gha-find-replace@master
+        with:
+          find: "${{ github.event.repository.name }}:.*\n"
+          replace: "${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
+      - name: Push update to the integration-k8s-kind
+        working-directory: networkservicemesh/integration-k8s-kind
+        run: |
+          echo Starting to update repositotry integration-k8s-kind
+          git add -- .
+          if ! [ -n "$(git diff --cached --exit-code)" ]; then
+            echo Repository already up to date
+            exit 0;
+          fi
+          diff=$(git diff --name-only)
+          branchName="${{ github.event.repository.name }}"
+          if  [ $(grep "go.mod" <<< "${diff}") && $(grep "" -c <<< "${diff}") == 1 ]; then
+            sdkPattern="github.com\/networkservicemesh\/sdk "
+            sdkVersion=$(grep --regexp "${sdkPattern}" go.mod)
+            branchName="${sdkVersion:${#sdkPattern}}"
+          fi;
+          git config --global user.email "nsmbot@networkservicmesh.io"
+          git config --global user.name "NSMBot"
+          git commit -s -F /tmp/commit-message
+          git checkout -b update/"${branchName}"
+          while [ git push origin update/"${branchName}" ]; do
+            git fetch origin update/"${branchName}"
+            git rebase origin/update/"${branchName}"
+          done

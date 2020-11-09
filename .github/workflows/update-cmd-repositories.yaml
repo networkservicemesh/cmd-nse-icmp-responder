@@ -9,7 +9,15 @@ jobs:
   update-dependent-repositories:
     strategy:
       matrix:
-        repository: [cmd-registry-proxy-dns, cmd-nsc, cmd-registry-memory, cmd-nsmgr, cmd-forwarder-vppagent]
+        repository:
+          - cmd-registry-proxy-dns
+          - cmd-nsc
+          - cmd-registry-memory
+          - cmd-nsmgr
+          - cmd-forwarder-vppagent
+          - cmd-exclude-prefixes-k8s
+          - cmd-forwarder-sriov
+          - cmd-nse-icmp-responder
     name: Update ${{ matrix.repository }}
     runs-on: ubuntu-latest
     if: github.repository == 'networkservicemesh/cmd-template'
@@ -44,7 +52,7 @@ jobs:
           token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.13.4
+          go-version: 1.15
       - name: Push update to the ${{ matrix.repository }}
         working-directory: networkservicemesh/${{ matrix.repository }}
         run: |
@@ -53,9 +61,20 @@ jobs:
           git config --global user.name "NSMBot"
           git remote add cmd_template https://github.com/networkservicemesh/cmd-template.git
           git fetch cmd_template
+          if [ ! -f .templateignore ]; then
+            touch .templateignore
+            git add .templateignore
+          fi
           git diff cmd_template/master -R | git apply
           git add $(git ls-tree --name-only -r cmd_template/master | grep ".*\.yml\|.*\.yaml\|.*\.md\|.*\.txt\|.*.\.conf")
-          git reset -- $(cat exclude.patch.conf)
+          git restore -- .templateignore
+          while read -r line || [[ -n "$line" ]]; do
+            git restore --staged -- $line
+            git restore -- $line
+          done < .templateignore
+          if ! [ -n "$(git diff --cached --exit-code)" ]; then
+            exit 0;
+          fi
           git commit -s -F /tmp/commit-message
           git checkout -b update/${{ github.repository }}
           git push -f origin update/${{ github.repository }}
