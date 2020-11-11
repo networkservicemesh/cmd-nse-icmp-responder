@@ -23,6 +23,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
+	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
+
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kelseyhightower/envconfig"
@@ -72,6 +75,12 @@ func main() {
 	if err := debug.Self(); err != nil {
 		log.Entry(ctx).Infof("%s", err)
 	}
+
+	// ********************************************************************************
+	// Configure open tracing
+	// ********************************************************************************
+	jaegerCloser := jaeger.InitJaeger("cmd-nse-icmp-responder")
+	defer func() { _ = jaegerCloser.Close() }()
 
 	// enumerating phases
 	log.Entry(ctx).Infof("there are 6 phases which will be executed followed by a success message:")
@@ -136,9 +145,16 @@ func main() {
 
 	// ********************************************************************************
 	log.Entry(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
-	// TODO add serveroptions for tracing
 	// ********************************************************************************
-	server := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()))))
+	options := append(
+		spanhelper.WithTracing(),
+		grpc.Creds(
+			credentials.NewTLS(
+				tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()),
+			),
+		),
+	)
+	server := grpc.NewServer(options...)
 	responderEndpoint.Register(server)
 	srvErrCh := grpcutils.ListenAndServe(ctx, &config.ListenOn, server)
 	exitOnErr(ctx, cancel, srvErrCh)
@@ -147,11 +163,20 @@ func main() {
 	// ********************************************************************************
 	log.Entry(ctx).Infof("executing phase 6: register nse with nsm")
 	// ********************************************************************************
-	cc, err := grpc.DialContext(ctx,
-		grpcutils.URLToTarget(&config.ConnectTo),
+	clientOptions := append(
+		spanhelper.WithTracingDial(),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()))))
+		grpc.WithTransportCredentials(
+			credentials.NewTLS(
+				tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()),
+			),
+		),
+	)
+	cc, err := grpc.DialContext(ctx,
+		grpcutils.URLToTarget(&config.ConnectTo),
+		clientOptions...,
+	)
 	if err != nil {
 		log.Entry(ctx).Fatalf("error establishing grpc connection to registry server %+v", err)
 	}
