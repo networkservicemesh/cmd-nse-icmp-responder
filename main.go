@@ -26,6 +26,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice/payload"
+
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 
@@ -203,7 +205,7 @@ func main() {
 
 	_, err = registry.NewNetworkServiceRegistryClient(cc).Register(context.Background(), &registry.NetworkService{
 		Name:    config.ServiceName,
-		Payload: "IP",
+		Payload: payload.IP,
 	})
 
 	if err != nil {
