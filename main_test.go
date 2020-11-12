@@ -28,7 +28,6 @@ import (
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/edwarnicke/exechelper"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/spiffe/go-spiffe/v2/bundle/x509bundle"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
@@ -95,7 +94,7 @@ func (t *NetworkServiceManagerProxySuite) SetupSuite() {
 	require.Len(t.T(), t.sutErrCh, 0)
 
 	// Get config from env
-	require.NoError(t.T(), envconfig.Process("nse-icmp-responder\"", &t.config))
+	require.NoError(t.T(), t.config.Process())
 
 	domain := sandbox.NewBuilder(t.T()).SetNodesCount(1).SetRegistryProxySupplier(nil).SetNSMgrProxySupplier(nil).Build()
 	t.config.ConnectTo = *domain.Nodes[0].NSMgr.URL

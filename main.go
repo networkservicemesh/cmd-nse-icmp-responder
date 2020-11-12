@@ -18,10 +18,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
@@ -51,11 +54,30 @@ import (
 type Config struct {
 	Name             string        `default:"icmp-server" desc:"Name of ICMP Server"`
 	BaseDir          string        `default:"./" desc:"base directory" split_words:"true"`
-	ListenOn         url.URL       `default:"unix:///listen.on.socket" desc:"url to listen on" split_words:"true"`
-	ConnectTo        url.URL       `default:"unix:///connect.to.socket" desc:"url to connect to" split_words:"true"`
+	ListenOn         url.URL       `desc:"url to listen on" split_words:"true"`
+	ConnectTo        url.URL       `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime time.Duration `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
 	ServiceName      string        `default:"icmp-responder" desc:"Name of providing service"`
 	CidrPrefix       string        `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from"`
+}
+
+// Process prints and processes env to config
+func (c *Config) Process() error {
+	if err := envconfig.Usage("nse", c); err != nil {
+		return errors.Wrap(err, "cannot show usage of envconfig nse")
+	}
+	if err := envconfig.Process("nse", c); err != nil {
+		return errors.Wrap(err, "cannot process envconfig nse")
+	}
+	if c.ListenOn.String() == "" {
+		rawURL := fmt.Sprintf("unix:///var/lib/networkservicemesh/%v.nsm.io.sock", c.Name)
+		u, err := url.Parse(rawURL)
+		if err != nil {
+			return errors.Wrapf(err, "cannot parse raw url: %v", rawURL)
+		}
+		c.ListenOn = *u
+	}
+	return nil
 }
 
 func main() {
@@ -98,13 +120,11 @@ func main() {
 	// ********************************************************************************
 	log.Entry(ctx).Infof("executing phase 1: get config from environment")
 	// ********************************************************************************
-	config := &Config{}
-	if err := envconfig.Usage("nse", config); err != nil {
-		logrus.Fatal(err)
+	config := new(Config)
+	if err := config.Process(); err != nil {
+		logrus.Fatal(err.Error())
 	}
-	if err := envconfig.Process("nse", config); err != nil {
-		logrus.Fatalf("error processing config from env: %+v", err)
-	}
+
 	log.Entry(ctx).Infof("Config: %#v", config)
 
 	// ********************************************************************************
