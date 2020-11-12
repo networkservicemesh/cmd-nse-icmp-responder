@@ -22,6 +22,7 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/spire"
+	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
 	_ "github.com/spiffe/go-spiffe/v2/bundle/x509bundle"
 	_ "github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
