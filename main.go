@@ -14,17 +14,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build !windows
+
 package main
 
 import (
 	"context"
-	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/edwarnicke/grpcfd"
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/recvfd"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
+	sendfd_registry "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 
 	"github.com/networkservicemesh/api/pkg/api/networkservice/payload"
 
@@ -56,7 +65,6 @@ import (
 type Config struct {
 	Name             string        `default:"icmp-server" desc:"Name of ICMP Server"`
 	BaseDir          string        `default:"./" desc:"base directory" split_words:"true"`
-	ListenOn         url.URL       `desc:"url to listen on" split_words:"true"`
 	ConnectTo        url.URL       `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime time.Duration `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
 	ServiceName      string        `default:"icmp-responder" desc:"Name of providing service"`
@@ -70,14 +78,6 @@ func (c *Config) Process() error {
 	}
 	if err := envconfig.Process("nse", c); err != nil {
 		return errors.Wrap(err, "cannot process envconfig nse")
-	}
-	if c.ListenOn.String() == "" {
-		rawURL := fmt.Sprintf("unix:///var/lib/networkservicemesh/%v.nsm.io.sock", c.Name)
-		u, err := url.Parse(rawURL)
-		if err != nil {
-			return errors.Wrapf(err, "cannot parse raw url: %v", rawURL)
-		}
-		c.ListenOn = *u
 	}
 	return nil
 }
@@ -163,7 +163,9 @@ func main() {
 		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
 		point2pointipam.NewServer(prefixes...),
-		kernel.NewServer())
+		recvfd.NewServer(),
+		kernel.NewServer(),
+		sendfd.NewServer())
 
 	// ********************************************************************************
 	log.Entry(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
@@ -171,14 +173,22 @@ func main() {
 	options := append(
 		spanhelper.WithTracing(),
 		grpc.Creds(
-			credentials.NewTLS(
-				tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()),
+			grpcfd.TransportCredentials(
+				credentials.NewTLS(
+					tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()),
+				),
 			),
 		),
 	)
 	server := grpc.NewServer(options...)
 	responderEndpoint.Register(server)
-	srvErrCh := grpcutils.ListenAndServe(ctx, &config.ListenOn, server)
+	tmpDir, err := ioutil.TempDir("", config.Name)
+	if err != nil {
+		logrus.Fatalf("error creating tmpDir %+v", err)
+	}
+	defer func(tmpDir string) { _ = os.Remove(tmpDir) }(tmpDir)
+	listenOn := &(url.URL{Scheme: "unix", Path: filepath.Join(tmpDir, "listen.on")})
+	srvErrCh := grpcutils.ListenAndServe(ctx, listenOn, server)
 	exitOnErr(ctx, cancel, srvErrCh)
 	log.Entry(ctx).Infof("grpc server started")
 
@@ -190,8 +200,10 @@ func main() {
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 		grpc.WithTransportCredentials(
-			credentials.NewTLS(
-				tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()),
+			grpcfd.TransportCredentials(
+				credentials.NewTLS(
+					tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()),
+				),
 			),
 		),
 	)
@@ -212,12 +224,16 @@ func main() {
 		log.Entry(ctx).Fatalf("unable to register ns %+v", err)
 	}
 
-	nse, err := registry.NewNetworkServiceEndpointRegistryClient(cc).Register(context.Background(), &registry.NetworkServiceEndpoint{
-		Name:                config.Name,
-		NetworkServiceNames: []string{config.ServiceName},
-		Url:                 config.ListenOn.String(),
-		ExpirationTime:      &timestamp.Timestamp{Seconds: time.Now().Add(time.Hour * 24).Unix()},
-	})
+	nse, err :=
+		chain.NewNetworkServiceEndpointRegistryClient(
+			sendfd_registry.NewNetworkServiceEndpointRegistryClient(),
+			registry.NewNetworkServiceEndpointRegistryClient(cc),
+		).Register(context.Background(), &registry.NetworkServiceEndpoint{
+			Name:                config.Name,
+			NetworkServiceNames: []string{config.ServiceName},
+			Url:                 listenOn.String(),
+			ExpirationTime:      &timestamp.Timestamp{Seconds: time.Now().Add(time.Hour * 24).Unix()},
+		})
 	logrus.Infof("nse: %+v", nse)
 
 	if err != nil {
@@ -227,6 +243,7 @@ func main() {
 	// ********************************************************************************
 	log.Entry(ctx).Infof("startup completed in %v", time.Since(starttime))
 	// ********************************************************************************
+
 	// wait for server to exit
 	<-ctx.Done()
 }
