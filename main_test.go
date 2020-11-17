@@ -24,11 +24,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/edwarnicke/grpcfd"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/expire"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
+	"github.com/networkservicemesh/sdk/pkg/registry/memory"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/edwarnicke/exechelper"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/spiffe/go-spiffe/v2/bundle/x509bundle"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
@@ -41,11 +51,10 @@ import (
 
 	main "github.com/networkservicemesh/cmd-nse-icmp-responder"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/sandbox"
 	"github.com/networkservicemesh/sdk/pkg/tools/spire"
 )
 
-type NetworkServiceManagerProxySuite struct {
+type NSESuite struct {
 	suite.Suite
 	ctx        context.Context
 	cancel     context.CancelFunc
@@ -54,9 +63,10 @@ type NetworkServiceManagerProxySuite struct {
 	config     main.Config
 	spireErrCh <-chan error
 	sutErrCh   <-chan error
+	listenOn   string
 }
 
-func (t *NetworkServiceManagerProxySuite) SetupSuite() {
+func (t *NSESuite) SetupSuite() {
 	logrus.SetFormatter(&nested.Formatter{})
 	logrus.SetLevel(logrus.TraceLevel)
 	t.ctx, t.cancel = context.WithCancel(context.Background())
@@ -95,13 +105,62 @@ func (t *NetworkServiceManagerProxySuite) SetupSuite() {
 	require.Len(t.T(), t.sutErrCh, 0)
 
 	// Get config from env
-	require.NoError(t.T(), envconfig.Process("nse-icmp-responder\"", &t.config))
+	require.NoError(t.T(), t.config.Process())
+	memrg := memory.NewNetworkServiceEndpointRegistryServer()
+	registryServer := chain.NewNetworkServiceEndpointRegistryServer(
+		setid.NewNetworkServiceEndpointRegistryServer(),
+		expire.NewNetworkServiceEndpointRegistryServer(),
+		recvfd.NewNetworkServiceEndpointRegistryServer(),
+		memrg,
+	)
 
-	domain := sandbox.NewBuilder(t.T()).SetNodesCount(1).SetRegistryProxySupplier(nil).SetNSMgrProxySupplier(nil).Build()
-	t.config.ConnectTo = *domain.Nodes[0].NSMgr.URL
+	serverCreds := credentials.NewTLS(tlsconfig.MTLSServerConfig(t.x509source, t.x509bundle, tlsconfig.AuthorizeAny()))
+	serverCreds = grpcfd.TransportCredentials(serverCreds)
+	server := grpc.NewServer(grpc.Creds(serverCreds))
+
+	registry.RegisterNetworkServiceEndpointRegistryServer(server, registryServer)
+	registry.RegisterNetworkServiceRegistryServer(server, memory.NewNetworkServiceRegistryServer())
+	ctx, cancel := context.WithCancel(t.ctx)
+	defer func(cancel context.CancelFunc, serverErrCh <-chan error) {
+		cancel()
+		err = <-serverErrCh
+		t.Require().NoError(err)
+	}(cancel, t.ListenAndServe(ctx, server))
+
+	recv, err := adapters.NetworkServiceEndpointServerToClient(memrg).Find(ctx, &registry.NetworkServiceEndpointQuery{
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceNames: []string{t.config.ServiceName},
+		},
+		Watch: true,
+	})
+	t.Require().NoError(err)
+
+	regEndpoint, err := recv.Recv()
+	t.Require().NoError(err)
+	t.listenOn = regEndpoint.Url
 }
 
-func (t *NetworkServiceManagerProxySuite) TearDownSuite() {
+func (t *NSESuite) ListenAndServe(ctx context.Context, server *grpc.Server) <-chan error {
+	errCh := grpcutils.ListenAndServe(ctx, &t.config.ConnectTo, server)
+	select {
+	case err, ok := <-errCh:
+		t.Require().True(ok)
+		t.Require().NoError(err)
+	default:
+	}
+	returnErrCh := make(chan error, len(errCh)+1)
+	go func(errCh <-chan error, returnErrCh chan<- error) {
+		for err := range errCh {
+			if err != nil {
+				returnErrCh <- errors.Wrap(err, "ListenAndServe")
+			}
+		}
+		close(returnErrCh)
+	}(errCh, returnErrCh)
+	return returnErrCh
+}
+
+func (t *NSESuite) TearDownSuite() {
 	t.cancel()
 	for {
 		_, ok := <-t.sutErrCh
@@ -117,11 +176,11 @@ func (t *NetworkServiceManagerProxySuite) TearDownSuite() {
 	}
 }
 
-func (t *NetworkServiceManagerProxySuite) TestHealthCheck() {
+func (t *NSESuite) TestHealthCheck() {
 	ctx, cancel := context.WithTimeout(t.ctx, 100*time.Second)
 	defer cancel()
 	healthCC, err := grpc.DialContext(ctx,
-		t.config.ListenOn.String(),
+		t.listenOn,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(t.x509source, t.x509bundle, tlsconfig.AuthorizeAny()))),
 	)
 	if err != nil {
@@ -149,5 +208,5 @@ func (t *NetworkServiceManagerProxySuite) TestHealthCheck() {
 }
 
 func TestRegistryTestSuite(t *testing.T) {
-	suite.Run(t, new(NetworkServiceManagerProxySuite))
+	suite.Run(t, new(NSESuite))
 }
