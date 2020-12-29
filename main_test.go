@@ -30,11 +30,11 @@ import (
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/expire"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
-	"github.com/networkservicemesh/sdk/pkg/registry/memory"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
@@ -109,7 +109,7 @@ func (t *NSESuite) SetupSuite() {
 	memrg := memory.NewNetworkServiceEndpointRegistryServer()
 	registryServer := chain.NewNetworkServiceEndpointRegistryServer(
 		setid.NewNetworkServiceEndpointRegistryServer(),
-		expire.NewNetworkServiceEndpointRegistryServer(),
+		expire.NewNetworkServiceEndpointRegistryServer(time.Minute),
 		recvfd.NewNetworkServiceEndpointRegistryServer(),
 		memrg,
 	)
