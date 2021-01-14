@@ -42,6 +42,6 @@ type TestSuite struct {
 	sutCC      grpc.ClientConnInterface
 }
 
-func TestForwarderTestSuite(t *testing.T) {
+func TestTestSuite(t *testing.T) {
 	suite.Run(t, new(TestSuite))
 }
