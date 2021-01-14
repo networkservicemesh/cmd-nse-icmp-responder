@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -27,48 +27,45 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/edwarnicke/grpcfd"
-	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/recvfd"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
-	sendfd_registry "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
-	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
-
-	"github.com/networkservicemesh/api/pkg/api/networkservice/payload"
-
-	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
-	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
-
 	nested "github.com/antonfisher/nested-logrus-formatter"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/edwarnicke/grpcfd"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/payload"
+	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/kernel"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/recvfd"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
+	registryrefresh "github.com/networkservicemesh/sdk/pkg/registry/common/refresh"
+	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
+	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
+	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 )
 
 // Config holds configuration parameters from environment variables
 type Config struct {
-	Name             string        `default:"icmp-server" desc:"Name of ICMP Server"`
-	BaseDir          string        `default:"./" desc:"base directory" split_words:"true"`
-	ConnectTo        url.URL       `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
-	MaxTokenLifetime time.Duration `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
-	ServiceName      string        `default:"icmp-responder" desc:"Name of providing service"`
-	CidrPrefix       string        `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from"`
+	Name             string            `default:"icmp-server" desc:"Name of ICMP Server"`
+	BaseDir          string            `default:"./" desc:"base directory" split_words:"true"`
+	ConnectTo        url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
+	MaxTokenLifetime time.Duration     `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
+	ServiceName      string            `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
+	Labels           map[string]string `default:"" desc:"Endpoint labels"`
+	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
 }
 
 // Process prints and processes env to config
@@ -150,10 +147,6 @@ func main() {
 		log.Entry(ctx).Fatalf("error parsing cidr: %+v", err)
 	}
 
-	prefixes := []*net.IPNet{
-		ipnet,
-	}
-
 	// ********************************************************************************
 	log.Entry(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
@@ -162,7 +155,7 @@ func main() {
 		config.Name,
 		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
-		point2pointipam.NewServer(prefixes...),
+		point2pointipam.NewServer(ipnet),
 		recvfd.NewServer(),
 		kernel.NewServer(),
 		sendfd.NewServer())
@@ -215,7 +208,7 @@ func main() {
 		log.Entry(ctx).Fatalf("error establishing grpc connection to registry server %+v", err)
 	}
 
-	_, err = registry.NewNetworkServiceRegistryClient(cc).Register(context.Background(), &registry.NetworkService{
+	_, err = registryapi.NewNetworkServiceRegistryClient(cc).Register(context.Background(), &registryapi.NetworkService{
 		Name:    config.ServiceName,
 		Payload: payload.IP,
 	})
@@ -224,16 +217,21 @@ func main() {
 		log.Entry(ctx).Fatalf("unable to register ns %+v", err)
 	}
 
-	nse, err :=
-		chain.NewNetworkServiceEndpointRegistryClient(
-			sendfd_registry.NewNetworkServiceEndpointRegistryClient(),
-			registry.NewNetworkServiceEndpointRegistryClient(cc),
-		).Register(context.Background(), &registry.NetworkServiceEndpoint{
-			Name:                config.Name,
-			NetworkServiceNames: []string{config.ServiceName},
-			Url:                 listenOn.String(),
-			ExpirationTime:      &timestamp.Timestamp{Seconds: time.Now().Add(time.Hour * 24).Unix()},
-		})
+	registryClient := registrychain.NewNetworkServiceEndpointRegistryClient(
+		registryrefresh.NewNetworkServiceEndpointRegistryClient(),
+		registrysendfd.NewNetworkServiceEndpointRegistryClient(),
+		registryapi.NewNetworkServiceEndpointRegistryClient(cc),
+	)
+	nse, err := registryClient.Register(context.Background(), &registryapi.NetworkServiceEndpoint{
+		Name:                config.Name,
+		NetworkServiceNames: []string{config.ServiceName},
+		NetworkServiceLabels: map[string]*registryapi.NetworkServiceLabels{
+			config.ServiceName: {
+				Labels: config.Labels,
+			},
+		},
+		Url: listenOn.String(),
+	})
 	logrus.Infof("nse: %+v", nse)
 
 	if err != nil {
