@@ -37,10 +37,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	kernelmech "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/payload"
 	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/kernel"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/recvfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
@@ -157,7 +160,9 @@ func main() {
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
 		point2pointipam.NewServer(ipnet),
 		recvfd.NewServer(),
-		kernel.NewServer(),
+		mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
+			kernelmech.MECHANISM: kernel.NewServer(),
+		}),
 		sendfd.NewServer())
 
 	// ********************************************************************************
