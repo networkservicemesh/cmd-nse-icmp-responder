@@ -41,24 +41,26 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/spire"
 )
 
 func (f *TestSuite) SetupSuite() {
 	logrus.SetFormatter(&nested.Formatter{})
-	logrus.SetLevel(logrus.TraceLevel)
+	logger.EnableTracing(true)
 	f.ctx, f.cancel = context.WithCancel(context.Background())
+	f.ctx, _ = logruslogger.New(f.ctx)
 
 	starttime := time.Now()
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("Getting Config from Env (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("Getting Config from Env (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	f.Require().NoError(f.config.Process())
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("Running Spire (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("Running Spire (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	executable, err := os.Executable()
 	f.Require().NoError(err)
@@ -72,7 +74,7 @@ func (f *TestSuite) SetupSuite() {
 	f.Require().Len(f.spireErrCh, 0)
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("Getting X509Source (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("Getting X509Source (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	source, err := workloadapi.NewX509Source(f.ctx)
 	f.x509source = source
@@ -80,10 +82,10 @@ func (f *TestSuite) SetupSuite() {
 	f.Require().NoError(err)
 	svid, err := f.x509source.GetX509SVID()
 	f.Require().NoError(err, "error getting x509 svid")
-	log.Entry(f.ctx).Infof("SVID: %q received (time since start: %s)", svid.ID, time.Since(starttime))
+	logger.Log(f.ctx).Infof("SVID: %q received (time since start: %s)", svid.ID, time.Since(starttime))
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("Running system under test (SUT) (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("Running system under test (SUT) (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	cmdStr := "nse-icmp-responder"
 	f.sutErrCh = exechelper.Start(cmdStr,
@@ -96,7 +98,7 @@ func (f *TestSuite) SetupSuite() {
 	f.Require().Len(f.sutErrCh, 0)
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("Creating registryServer and registryClient (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("Creating registryServer and registryClient (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	memrg := memory.NewNetworkServiceEndpointRegistryServer()
 	registryServer := registrychain.NewNetworkServiceEndpointRegistryServer(
@@ -107,7 +109,7 @@ func (f *TestSuite) SetupSuite() {
 	)
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("Get the regEndpoint from SUT (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("Get the regEndpoint from SUT (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	serverCreds := credentials.NewTLS(tlsconfig.MTLSServerConfig(f.x509source, f.x509bundle, tlsconfig.AuthorizeAny()))
 	serverCreds = grpcfd.TransportCredentials(serverCreds)
@@ -132,10 +134,10 @@ func (f *TestSuite) SetupSuite() {
 
 	regEndpoint, err := recv.Recv()
 	f.Require().NoError(err)
-	log.Entry(ctx).Infof("Received regEndpoint: %+v (time since start: %s)", regEndpoint, time.Since(starttime))
+	logger.Log(ctx).Infof("Received regEndpoint: %+v (time since start: %s)", regEndpoint, time.Since(starttime))
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("Creating grpc.ClientConn to SUT (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("Creating grpc.ClientConn to SUT (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	clientCreds := credentials.NewTLS(tlsconfig.MTLSClientConfig(f.x509source, f.x509bundle, tlsconfig.AuthorizeAny()))
 	clientCreds = grpcfd.TransportCredentials(clientCreds)
@@ -147,7 +149,7 @@ func (f *TestSuite) SetupSuite() {
 	f.Require().NoError(err)
 
 	// ********************************************************************************
-	log.Entry(f.ctx).Infof("SetupSuite Complete (time since start: %s)", time.Since(starttime))
+	logger.Log(f.ctx).Infof("SetupSuite Complete (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 }
 
