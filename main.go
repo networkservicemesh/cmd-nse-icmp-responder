@@ -155,18 +155,18 @@ func main() {
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
-	responderEndpoint := endpoint.NewServer(
-		ctx,
-		config.Name,
-		authorize.NewServer(),
+	responderEndpoint := endpoint.NewServer(ctx,
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
-		point2pointipam.NewServer(ipnet),
-		recvfd.NewServer(),
-		mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
-			kernelmech.MECHANISM: kernel.NewServer(),
-			noop.MECHANISM:       null.NewServer(),
-		}),
-		sendfd.NewServer())
+		endpoint.WithName(config.Name),
+		endpoint.WithAuthorizeServer(authorize.NewServer()),
+		endpoint.WithAdditionalFunctionality(
+			point2pointipam.NewServer(ipnet),
+			recvfd.NewServer(),
+			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
+				kernelmech.MECHANISM: kernel.NewServer(),
+				noop.MECHANISM:       null.NewServer(),
+			}),
+			sendfd.NewServer()))
 
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
