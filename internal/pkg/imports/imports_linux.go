@@ -11,7 +11,6 @@ import (
 	_ "github.com/networkservicemesh/api/pkg/api/networkservice"
 	_ "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	_ "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/noop"
-	_ "github.com/networkservicemesh/api/pkg/api/networkservice/payload"
 	_ "github.com/networkservicemesh/api/pkg/api/registry"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
