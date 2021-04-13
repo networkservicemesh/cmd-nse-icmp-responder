@@ -1,6 +1,6 @@
 module github.com/networkservicemesh/cmd-nse-icmp-responder
 
-go 1.15
+go 1.16
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.2.0
@@ -13,7 +13,6 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-alpha.4.0.20200528145730-dc11d0c74e85
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/exp v0.0.0-20191030013958-a1ab85dbe136 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13 // indirect
 	golang.org/x/text v0.3.2 // indirect
