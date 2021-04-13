@@ -21,3 +21,5 @@ require (
 	google.golang.org/grpc v1.35.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
+
+replace github.com/networkservicemesh/sdk => github.com/Bolodya1997/sdk v0.0.0-20210413055531-95bc35aed1e0
