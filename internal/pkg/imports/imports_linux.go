@@ -24,7 +24,6 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/expire"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
-	_ "github.com/networkservicemesh/sdk/pkg/registry/common/setid"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/debug"
