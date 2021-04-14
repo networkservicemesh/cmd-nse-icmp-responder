@@ -17,6 +17,6 @@
 // Package imports is used for generating list of imports to optimize use of docker build cache
 package imports
 
-//go:generate bash -c "rm -rf imports_linux.go"
+//go:generate bash -c "rm -rf imports*.go"
 //go:generate bash -c "cd $(mktemp -d) && GO111MODULE=on go get github.com/edwarnicke/imports-gen@v1.1.0"
 //go:generate bash -c "GOOS=linux ${GOPATH}/bin/imports-gen"
