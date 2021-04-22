@@ -32,7 +32,6 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/opentracing"
-	_ "github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/spire"
 	_ "github.com/pkg/errors"
@@ -49,7 +48,9 @@ import (
 	_ "net"
 	_ "net/url"
 	_ "os"
+	_ "os/signal"
 	_ "path/filepath"
+	_ "syscall"
 	_ "testing"
 	_ "time"
 )
