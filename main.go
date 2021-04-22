@@ -24,7 +24,9 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
@@ -56,7 +58,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
-	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 )
 
@@ -87,8 +88,15 @@ func main() {
 	// ********************************************************************************
 	// setup context to catch signals
 	// ********************************************************************************
-	ctx := signalctx.WithSignals(context.Background())
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		// More Linux signals here
+		syscall.SIGHUP,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+	defer cancel()
 
 	// ********************************************************************************
 	// setup logging
