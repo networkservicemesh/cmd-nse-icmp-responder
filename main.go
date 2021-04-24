@@ -50,9 +50,11 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/recvfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/null"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/connectioncontext/dnscontext"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
+	dnstools "github.com/networkservicemesh/sdk/pkg/tools/dnscontext"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
@@ -70,6 +72,7 @@ type Config struct {
 	ServiceName      string            `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
 	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels           map[string]string `default:"" desc:"Endpoint labels"`
+	DNSConfigs       dnstools.Decoder  `default:"[]" desc:"DNSConfigs represents array of DNSConfig in json format. See at model definition: https://github.com/networkservicemesh/api/blob/main/pkg/api/networkservice/connectioncontext.pb.go#L426-L435" split_words:"true"`
 	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
 }
 
@@ -174,8 +177,10 @@ func main() {
 				kernelmech.MECHANISM: kernel.NewServer(),
 				noop.MECHANISM:       null.NewServer(),
 			}),
-			sendfd.NewServer()))
-
+			dnscontext.NewServer(config.DNSConfigs...),
+			sendfd.NewServer(),
+		),
+	)
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
 	// ********************************************************************************
