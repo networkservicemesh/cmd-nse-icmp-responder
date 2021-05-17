@@ -52,7 +52,6 @@ func TestMain(m *testing.M) {
 	log.EnableTracing(true)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	spireErrCh := runSpire(ctx)
 	_ = spireErrCh
