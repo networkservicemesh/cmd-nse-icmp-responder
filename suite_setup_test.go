@@ -57,7 +57,7 @@ func TestMain(m *testing.M) {
 	spireErrCh := runSpire(ctx)
 	_ = spireErrCh
 
-	m.Run()
+	exitCode := m.Run()
 
 	cancel()
 	for {
@@ -66,6 +66,9 @@ func TestMain(m *testing.M) {
 			break
 		}
 	}
+
+	// TODO update linter to disable warning about os.Exit necessity
+	os.Exit(exitCode)
 }
 
 func (f *TestSuite) SetupSuite() {
