@@ -38,6 +38,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/registry/common/expire"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	registryrecvfd "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/serialize"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
@@ -101,6 +102,7 @@ func (f *TestSuite) SetupSuite() {
 	// ********************************************************************************
 	memrg := memory.NewNetworkServiceEndpointRegistryServer()
 	registryServer := registrychain.NewNetworkServiceEndpointRegistryServer(
+		serialize.NewNetworkServiceEndpointRegistryServer(),
 		expire.NewNetworkServiceEndpointRegistryServer(f.ctx, time.Minute),
 		registryrecvfd.NewNetworkServiceEndpointRegistryServer(),
 		memrg,
