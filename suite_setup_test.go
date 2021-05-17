@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"testing"
 	"time"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
@@ -46,9 +47,28 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/spire"
 )
 
-func (f *TestSuite) SetupSuite() {
+func TestMain(m *testing.M) {
 	logrus.SetFormatter(&nested.Formatter{})
 	log.EnableTracing(true)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	spireErrCh := runSpire(ctx)
+	_ = spireErrCh
+
+	m.Run()
+
+	cancel()
+	for {
+		_, ok := <-spireErrCh
+		if !ok {
+			break
+		}
+	}
+}
+
+func (f *TestSuite) SetupSuite() {
 	f.ctx, f.cancel = context.WithCancel(context.Background())
 	f.ctx = log.WithLog(f.ctx, logruslogger.New(f.ctx))
 
@@ -58,20 +78,6 @@ func (f *TestSuite) SetupSuite() {
 	log.FromContext(f.ctx).Infof("Getting Config from Env (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	f.Require().NoError(f.config.Process())
-
-	// ********************************************************************************
-	log.FromContext(f.ctx).Infof("Running Spire (time since start: %s)", time.Since(starttime))
-	// ********************************************************************************
-	executable, err := os.Executable()
-	f.Require().NoError(err)
-	f.spireErrCh = spire.Start(
-		spire.WithContext(f.ctx),
-		spire.WithEntry("spiffe://example.org/nse-icmp-responder", "unix:path:/bin/nse-icmp-responder"),
-		spire.WithEntry(fmt.Sprintf("spiffe://example.org/%s", filepath.Base(executable)),
-			fmt.Sprintf("unix:path:%s", executable),
-		),
-	)
-	f.Require().Len(f.spireErrCh, 0)
 
 	// ********************************************************************************
 	log.FromContext(f.ctx).Infof("Getting X509Source (time since start: %s)", time.Since(starttime))
@@ -161,10 +167,26 @@ func (f *TestSuite) TearDownSuite() {
 			break
 		}
 	}
-	for {
-		_, ok := <-f.spireErrCh
-		if !ok {
-			break
-		}
+}
+
+func runSpire(ctx context.Context) <-chan error {
+	// ********************************************************************************
+	log.FromContext(ctx).Infof("Running Spire")
+	// ********************************************************************************
+	executable, err := os.Executable()
+	if err != nil {
+		panic(err)
 	}
+	spireErrCh := spire.Start(
+		spire.WithContext(ctx),
+		spire.WithEntry("spiffe://example.org/nse-icmp-responder", "unix:path:/bin/nse-icmp-responder"),
+		spire.WithEntry(fmt.Sprintf("spiffe://example.org/%s", filepath.Base(executable)),
+			fmt.Sprintf("unix:path:%s", executable),
+		),
+	)
+	if len(spireErrCh) != 0 {
+		panic("spire start error")
+	}
+
+	return spireErrCh
 }

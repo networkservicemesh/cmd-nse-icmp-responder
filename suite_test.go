@@ -37,7 +37,6 @@ type TestSuite struct {
 	x509source x509svid.Source
 	x509bundle x509bundle.Source
 	config     main.Config
-	spireErrCh <-chan error
 	sutErrCh   <-chan error
 	sutCC      grpc.ClientConnInterface
 }
