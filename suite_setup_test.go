@@ -54,7 +54,6 @@ func TestMain(m *testing.M) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	spireErrCh := runSpire(ctx)
-	_ = spireErrCh
 
 	exitCode := m.Run()
 
@@ -173,7 +172,7 @@ func (f *TestSuite) TearDownSuite() {
 
 func runSpire(ctx context.Context) <-chan error {
 	// ********************************************************************************
-	log.FromContext(ctx).Infof("Running Spire")
+	log.FromContext(ctx).Infof("Start Spire")
 	// ********************************************************************************
 	executable, err := os.Executable()
 	if err != nil {
