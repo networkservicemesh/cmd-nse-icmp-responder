@@ -41,7 +41,7 @@ func (f *TestSuite) TestHealthCheck() {
 		},
 		grpc.WaitForReady(true),
 	)
-	f.NoError(err)
+	f.Require().NoError(err)
 	f.Require().NotNil(healthResponse)
-	f.Equal(grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.Status)
+	f.Require().Equal(grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.Status)
 }

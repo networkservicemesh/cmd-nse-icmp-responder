@@ -49,9 +49,9 @@ func TestAutoShutdown(t *testing.T) {
 
 	healthClient := grpc_health_v1.NewHealthClient(f.sutCC)
 	healthResponse, err := healthClient.Check(ctx, hcRequest, grpc.WaitForReady(true))
-	f.NoError(err)
-	f.Require().NotNil(healthResponse)
-	f.Equal(grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.Status)
+	require.NoError(t, err)
+	require.NotNil(t, healthResponse)
+	require.Equal(t, grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.Status)
 
 	require.Eventually(t, func() bool {
 		_, err = healthClient.Check(ctx, hcRequest)
