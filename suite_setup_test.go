@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"testing"
 	"time"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
@@ -38,6 +39,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/registry/common/expire"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	registryrecvfd "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/serialize"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
@@ -45,9 +47,29 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/spire"
 )
 
-func (f *TestSuite) SetupSuite() {
+func TestMain(m *testing.M) {
 	logrus.SetFormatter(&nested.Formatter{})
 	log.EnableTracing(true)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	spireErrCh := runSpire(ctx)
+
+	exitCode := m.Run()
+
+	cancel()
+	for {
+		_, ok := <-spireErrCh
+		if !ok {
+			break
+		}
+	}
+
+	// TODO update linter to disable warning about os.Exit necessity
+	os.Exit(exitCode)
+}
+
+func (f *TestSuite) SetupSuite() {
 	f.ctx, f.cancel = context.WithCancel(context.Background())
 	f.ctx = log.WithLog(f.ctx, logruslogger.New(f.ctx))
 
@@ -57,20 +79,6 @@ func (f *TestSuite) SetupSuite() {
 	log.FromContext(f.ctx).Infof("Getting Config from Env (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
 	f.Require().NoError(f.config.Process())
-
-	// ********************************************************************************
-	log.FromContext(f.ctx).Infof("Running Spire (time since start: %s)", time.Since(starttime))
-	// ********************************************************************************
-	executable, err := os.Executable()
-	f.Require().NoError(err)
-	f.spireErrCh = spire.Start(
-		spire.WithContext(f.ctx),
-		spire.WithEntry("spiffe://example.org/nse-icmp-responder", "unix:path:/bin/nse-icmp-responder"),
-		spire.WithEntry(fmt.Sprintf("spiffe://example.org/%s", filepath.Base(executable)),
-			fmt.Sprintf("unix:path:%s", executable),
-		),
-	)
-	f.Require().Len(f.spireErrCh, 0)
 
 	// ********************************************************************************
 	log.FromContext(f.ctx).Infof("Getting X509Source (time since start: %s)", time.Since(starttime))
@@ -101,6 +109,7 @@ func (f *TestSuite) SetupSuite() {
 	// ********************************************************************************
 	memrg := memory.NewNetworkServiceEndpointRegistryServer()
 	registryServer := registrychain.NewNetworkServiceEndpointRegistryServer(
+		serialize.NewNetworkServiceEndpointRegistryServer(),
 		expire.NewNetworkServiceEndpointRegistryServer(f.ctx, time.Minute),
 		registryrecvfd.NewNetworkServiceEndpointRegistryServer(),
 		memrg,
@@ -159,10 +168,26 @@ func (f *TestSuite) TearDownSuite() {
 			break
 		}
 	}
-	for {
-		_, ok := <-f.spireErrCh
-		if !ok {
-			break
-		}
+}
+
+func runSpire(ctx context.Context) <-chan error {
+	// ********************************************************************************
+	log.FromContext(ctx).Infof("Start Spire")
+	// ********************************************************************************
+	executable, err := os.Executable()
+	if err != nil {
+		panic(err)
 	}
+	spireErrCh := spire.Start(
+		spire.WithContext(ctx),
+		spire.WithEntry("spiffe://example.org/nse-icmp-responder", "unix:path:/bin/nse-icmp-responder"),
+		spire.WithEntry(fmt.Sprintf("spiffe://example.org/%s", filepath.Base(executable)),
+			fmt.Sprintf("unix:path:%s", executable),
+		),
+	)
+	if len(spireErrCh) != 0 {
+		panic("spire start error")
+	}
+
+	return spireErrCh
 }
