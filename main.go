@@ -224,15 +224,9 @@ func main() {
 			),
 		),
 	)
-	cc, err := grpc.DialContext(ctx,
-		grpcutils.URLToTarget(&config.ConnectTo),
-		clientOptions...,
-	)
-	if err != nil {
-		log.FromContext(ctx).Fatalf("error establishing grpc connection to registry server %+v", err)
-	}
 
-	_, err = registryclient.NewNetworkServiceRegistryClient(cc).Register(context.Background(), &registryapi.NetworkService{
+	nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
+	_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
 		Name:    config.ServiceName,
 		Payload: config.Payload,
 	})
@@ -241,8 +235,8 @@ func main() {
 		log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
 	}
 
-	registryClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, cc)
-	nse, err := registryClient.Register(context.Background(), &registryapi.NetworkServiceEndpoint{
+	nseRegistryClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
+	nse, err := nseRegistryClient.Register(ctx, &registryapi.NetworkServiceEndpoint{
 		Name:                config.Name,
 		NetworkServiceNames: []string{config.ServiceName},
 		NetworkServiceLabels: map[string]*registryapi.NetworkServiceLabels{
