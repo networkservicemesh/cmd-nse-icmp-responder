@@ -23,4 +23,4 @@ CMD dlv -l :40000 --headless=true --api-version=2 test -test.v ./...
 
 FROM alpine as runtime
 COPY --from=build /bin/nse-icmp-responder /bin/nse-icmp-responder
-CMD /bin/nse-icmp-responder
+ENTRYPOINT [ "/bin/nse-icmp-responder" ]
