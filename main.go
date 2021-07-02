@@ -76,6 +76,7 @@ type Config struct {
 	DNSConfigs       dnstools.Decoder  `default:"[]" desc:"DNSConfigs represents array of DNSConfig in json format. See at model definition: https://github.com/networkservicemesh/api/blob/main/pkg/api/networkservice/connectioncontext.pb.go#L426-L435" split_words:"true"`
 	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
 	IdleTimeout      time.Duration     `default:"0" desc:"timeout for automatic shutdown when there were no requests for specified time. Set 0 to disable auto-shutdown." split_words:"true"`
+	RegisterService  bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
 }
 
 // Process prints and processes env to config
@@ -225,14 +226,16 @@ func main() {
 		),
 	)
 
-	nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
-	_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
-		Name:    config.ServiceName,
-		Payload: config.Payload,
-	})
+	if config.RegisterService {
+		nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
+		_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
+			Name:    config.ServiceName,
+			Payload: config.Payload,
+		})
 
-	if err != nil {
-		log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
+		if err != nil {
+			log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
+		}
 	}
 
 	nseRegistryClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
