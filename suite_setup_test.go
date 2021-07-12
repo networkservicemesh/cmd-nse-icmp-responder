@@ -131,9 +131,10 @@ func (f *TestSuite) SetupSuite() {
 		f.Require().NoError(err)
 	}(cancel, f.ListenAndServe(ctx, server))
 
+	f.Require().Greater(len(f.config.ServiceNames), 0)
 	recv, err := adapters.NetworkServiceEndpointServerToClient(memrg).Find(ctx, &registry.NetworkServiceEndpointQuery{
 		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceNames: []string{f.config.ServiceName},
+			NetworkServiceNames: []string{f.config.ServiceNames[0]},
 		},
 		Watch: true,
 	})

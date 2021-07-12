@@ -70,7 +70,7 @@ type Config struct {
 	BaseDir          string            `default:"./" desc:"base directory" split_words:"true"`
 	ConnectTo        url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime time.Duration     `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
-	ServiceName      string            `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
+	ServiceNames     []string          `default:"icmp-responder" desc:"Name of provided services" split_words:"true"`
 	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels           map[string]string `default:"" desc:"Endpoint labels"`
 	DNSConfigs       dnstools.Decoder  `default:"[]" desc:"DNSConfigs represents array of DNSConfig in json format. See at model definition: https://github.com/networkservicemesh/api/blob/main/pkg/api/networkservice/connectioncontext.pb.go#L426-L435" split_words:"true"`
@@ -227,28 +227,30 @@ func main() {
 	)
 
 	if config.RegisterService {
-		nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
-		_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
-			Name:    config.ServiceName,
-			Payload: config.Payload,
-		})
+		for _, serviceName := range config.ServiceNames {
+			nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
+			_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
+				Name:    serviceName,
+				Payload: config.Payload,
+			})
 
-		if err != nil {
-			log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
+			if err != nil {
+				log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
+			}
 		}
 	}
 
 	nseRegistryClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
-	nse, err := nseRegistryClient.Register(ctx, &registryapi.NetworkServiceEndpoint{
-		Name:                config.Name,
-		NetworkServiceNames: []string{config.ServiceName},
-		NetworkServiceLabels: map[string]*registryapi.NetworkServiceLabels{
-			config.ServiceName: {
-				Labels: config.Labels,
-			},
-		},
-		Url: listenOn.String(),
-	})
+	nse := &registryapi.NetworkServiceEndpoint{
+		Name:                 config.Name,
+		NetworkServiceNames:  config.ServiceNames,
+		NetworkServiceLabels: make(map[string]*registryapi.NetworkServiceLabels),
+		Url:                  listenOn.String(),
+	}
+	for _, serviceName := range config.ServiceNames {
+		nse.NetworkServiceLabels[serviceName] = &registryapi.NetworkServiceLabels{Labels: config.Labels}
+	}
+	nse, err = nseRegistryClient.Register(ctx, nse)
 	logrus.Infof("nse: %+v", nse)
 
 	if err != nil {
