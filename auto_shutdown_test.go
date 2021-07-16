@@ -33,7 +33,7 @@ import (
 )
 
 func TestAutoShutdown(t *testing.T) {
-	err := os.Setenv("NSE_IDLE_TIMEOUT", "2s")
+	err := os.Setenv("NSM_IDLE_TIMEOUT", "2s")
 	require.NoError(t, err)
 	f := TestSuite{}
 	f.SetT(t)
