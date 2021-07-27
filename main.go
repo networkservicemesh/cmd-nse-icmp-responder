@@ -69,7 +69,7 @@ type Config struct {
 	Name             string            `default:"icmp-server" desc:"Name of ICMP Server"`
 	BaseDir          string            `default:"./" desc:"base directory" split_words:"true"`
 	ConnectTo        url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
-	MaxTokenLifetime time.Duration     `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
+	MaxTokenLifetime time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
 	ServiceNames     []string          `default:"icmp-responder" desc:"Name of provided services" split_words:"true"`
 	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels           map[string]string `default:"" desc:"Endpoint labels"`
