@@ -32,6 +32,7 @@ import (
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/edwarnicke/grpcfd"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/networkservicemesh/sdk/pkg/tools/opa"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
@@ -66,17 +67,18 @@ import (
 
 // Config holds configuration parameters from environment variables
 type Config struct {
-	Name             string            `default:"icmp-server" desc:"Name of ICMP Server"`
-	BaseDir          string            `default:"./" desc:"base directory" split_words:"true"`
-	ConnectTo        url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
-	MaxTokenLifetime time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
-	ServiceNames     []string          `default:"icmp-responder" desc:"Name of provided services" split_words:"true"`
-	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
-	Labels           map[string]string `default:"" desc:"Endpoint labels"`
-	DNSConfigs       dnstools.Decoder  `default:"[]" desc:"DNSConfigs represents array of DNSConfig in json format. See at model definition: https://github.com/networkservicemesh/api/blob/main/pkg/api/networkservice/connectioncontext.pb.go#L426-L435" split_words:"true"`
-	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
-	IdleTimeout      time.Duration     `default:"0" desc:"timeout for automatic shutdown when there were no requests for specified time. Set 0 to disable auto-shutdown." split_words:"true"`
-	RegisterService  bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
+	Name             string                    `default:"icmp-server" desc:"Name of ICMP Server"`
+	BaseDir          string                    `default:"./" desc:"base directory" split_words:"true"`
+	ConnectTo        url.URL                   `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
+	MaxTokenLifetime time.Duration             `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
+	ServiceNames     []string                  `default:"icmp-responder" desc:"Name of provided services" split_words:"true"`
+	Payload          string                    `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
+	Labels           map[string]string         `default:"" desc:"Endpoint labels"`
+	DNSConfigs       dnstools.Decoder          `default:"[]" desc:"DNSConfigs represents array of DNSConfig in json format. See at model definition: https://github.com/networkservicemesh/api/blob/main/pkg/api/networkservice/connectioncontext.pb.go#L426-L435" split_words:"true"`
+	CidrPrefix       string                    `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
+	IdleTimeout      time.Duration             `default:"0" desc:"timeout for automatic shutdown when there were no requests for specified time. Set 0 to disable auto-shutdown." split_words:"true"`
+	RegisterService  bool                      `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
+	OPAPolicies      []opa.AuthorizationPolicy `default:"" desc:"list of additional OPA policies in 'file:query:true|false,...' format" split_words:"true"`
 }
 
 // Process prints and processes env to config
@@ -169,10 +171,17 @@ func main() {
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
+	var policies []authorize.Policy
+	for i := range config.OPAPolicies {
+		policies = append(policies, &config.OPAPolicies[i])
+	}
+
 	responderEndpoint := endpoint.NewServer(ctx,
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
 		endpoint.WithName(config.Name),
-		endpoint.WithAuthorizeServer(authorize.NewServer()),
+		endpoint.WithAuthorizeServer(authorize.NewServer(
+			authorize.WithPolicies(policies...)),
+		),
 		endpoint.WithAdditionalFunctionality(
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
 			point2pointipam.NewServer(ipnet),
