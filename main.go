@@ -43,6 +43,8 @@ import (
 	kernelmech "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/noop"
 	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/sdk-sriov/pkg/networkservice/common/token"
+	"github.com/networkservicemesh/sdk-sriov/pkg/tools/tokens"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms"
@@ -169,11 +171,11 @@ func main() {
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
-	responderEndpoint := endpoint.NewServer(ctx,
-		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
-		endpoint.WithName(config.Name),
-		endpoint.WithAuthorizeServer(authorize.NewServer()),
-		endpoint.WithAdditionalFunctionality(
+	sriovTokens := tokens.FromEnv(os.Environ())
+
+	var additionalFunc endpoint.Option
+	if len(sriovTokens) == 0 {
+		additionalFunc = endpoint.WithAdditionalFunctionality(
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
 			point2pointipam.NewServer(ipnet),
 			recvfd.NewServer(),
@@ -183,7 +185,32 @@ func main() {
 			}),
 			dnscontext.NewServer(config.DNSConfigs...),
 			sendfd.NewServer(),
-		),
+		)
+	} else if len(sriovTokens) == 1 {
+		var tokenKey string
+		for tokenKey = range sriovTokens {
+			break
+		}
+		additionalFunc = endpoint.WithAdditionalFunctionality(
+			onidle.NewServer(ctx, cancel, config.IdleTimeout),
+			point2pointipam.NewServer(ipnet),
+			recvfd.NewServer(),
+			token.NewServer(tokenKey),
+			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
+				kernelmech.MECHANISM: kernel.NewServer(),
+				noop.MECHANISM:       null.NewServer(),
+			}),
+			dnscontext.NewServer(config.DNSConfigs...),
+			sendfd.NewServer(),
+		)
+	} else {
+		log.FromContext(ctx).Fatalf("endpoint must be configured with none or only one sriov resource")
+	}
+	responderEndpoint := endpoint.NewServer(ctx,
+		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
+		endpoint.WithName(config.Name),
+		endpoint.WithAuthorizeServer(authorize.NewServer()),
+		additionalFunc,
 	)
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
