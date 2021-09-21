@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !windows
+// +build linux
 
 package main
 
@@ -43,6 +43,8 @@ import (
 	kernelmech "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/noop"
 	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/sdk-sriov/pkg/networkservice/common/token"
+	"github.com/networkservicemesh/sdk-sriov/pkg/tools/tokens"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms"
@@ -169,6 +171,9 @@ func main() {
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
+
+	tokenServer := getSriovTokenServerChainElement(ctx)
+
 	responderEndpoint := endpoint.NewServer(ctx,
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
 		endpoint.WithName(config.Name),
@@ -181,6 +186,7 @@ func main() {
 				kernelmech.MECHANISM: kernel.NewServer(),
 				noop.MECHANISM:       null.NewServer(),
 			}),
+			tokenServer,
 			dnscontext.NewServer(config.DNSConfigs...),
 			sendfd.NewServer(),
 		),
@@ -263,6 +269,23 @@ func main() {
 
 	// wait for server to exit
 	<-ctx.Done()
+}
+
+func getSriovTokenServerChainElement(ctx context.Context) (tokenServer networkservice.NetworkServiceServer) {
+	sriovTokens := tokens.FromEnv(os.Environ())
+	switch len(sriovTokens) {
+	case 0:
+		tokenServer = null.NewServer()
+	case 1:
+		var tokenKey string
+		for tokenKey = range sriovTokens {
+			break
+		}
+		tokenServer = token.NewServer(tokenKey)
+	default:
+		log.FromContext(ctx).Fatalf("endpoint must be configured with none or only one sriov resource")
+	}
+	return
 }
 
 func exitOnErr(ctx context.Context, cancel context.CancelFunc, errCh <-chan error) {
