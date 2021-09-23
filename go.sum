@@ -123,8 +123,8 @@ github.com/nats-io/stan.go v0.6.0/go.mod h1:eIcD5bi3pqbHT/xIIvXMwvzXYElgouBvaVRf
 github.com/networkservicemesh/api v1.0.1-0.20210907194827-9a36433d7d6e h1:PO6tDo/bGLJqz1qiqCecht/HqMWCKunAds2U9Hvc0yM=
 github.com/networkservicemesh/api v1.0.1-0.20210907194827-9a36433d7d6e/go.mod h1:B6meq/SWjWR6bGXZdXPfbOeaBK+T1JayLdtEJQCsXKU=
 github.com/networkservicemesh/sdk v0.5.1-0.20210920202612-c7b15bacaae5/go.mod h1:eISPu+ySJJ46kg03ZTi/xmpNSU+K4cImwq++ZbDV4F4=
-github.com/networkservicemesh/sdk v0.5.1-0.20210923095420-55adc082a663 h1:FFg8nS3TsFhf8FGv4llT72EoVxl0CDoktQinzMh0BbE=
-github.com/networkservicemesh/sdk v0.5.1-0.20210923095420-55adc082a663/go.mod h1:eISPu+ySJJ46kg03ZTi/xmpNSU+K4cImwq++ZbDV4F4=
+github.com/networkservicemesh/sdk v0.5.1-0.20210923121729-a96ead921c0e h1:TAwBUmxsqAQk4vmNq2RmEe13/OPYZierKXgdC6pFUl8=
+github.com/networkservicemesh/sdk v0.5.1-0.20210923121729-a96ead921c0e/go.mod h1:eISPu+ySJJ46kg03ZTi/xmpNSU+K4cImwq++ZbDV4F4=
 github.com/networkservicemesh/sdk-kernel v0.0.0-20210920202825-c9b2553abaa2/go.mod h1:SyFuSZlOcByKHf5CLNBwKonI5AiT8Pk9EnPHtwojV8Q=
 github.com/networkservicemesh/sdk-sriov v0.0.0-20210920203242-f70665ff69a0 h1:WaRx3M0KrU9dHxt6Q3DMa1LG88T67Lbn6pby4j0bbhY=
 github.com/networkservicemesh/sdk-sriov v0.0.0-20210920203242-f70665ff69a0/go.mod h1:R35jgX+cP6tJJzpfUB0PDS2Lnk5k7noVx6qIt15xkGI=
