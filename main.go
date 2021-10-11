@@ -79,6 +79,7 @@ type Config struct {
 	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
 	IdleTimeout      time.Duration     `default:"0" desc:"timeout for automatic shutdown when there were no requests for specified time. Set 0 to disable auto-shutdown." split_words:"true"`
 	RegisterService  bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
+	LogLevel         string            `default:"INFO" desc:"Log level" split_words:"true"`
 }
 
 // Process prints and processes env to config
@@ -144,6 +145,11 @@ func main() {
 	if err := config.Process(); err != nil {
 		logrus.Fatal(err.Error())
 	}
+	l, err := logrus.ParseLevel(config.LogLevel)
+	if err != nil {
+		logrus.Fatalf("invalid log level %s", config.LogLevel)
+	}
+	logrus.SetLevel(l)
 
 	log.FromContext(ctx).Infof("Config: %#v", config)
 
