@@ -140,9 +140,9 @@ func (f *TestSuite) SetupSuite() {
 	})
 	f.Require().NoError(err)
 
-	regEndpoint, err := recv.Recv()
+	nseResp, err := recv.Recv()
 	f.Require().NoError(err)
-	log.FromContext(ctx).Infof("Received regEndpoint: %+v (time since start: %s)", regEndpoint, time.Since(starttime))
+	log.FromContext(ctx).Infof("Received regEndpoint: %+v (time since start: %s)", nseResp, time.Since(starttime))
 
 	// ********************************************************************************
 	log.FromContext(f.ctx).Infof("Creating grpc.ClientConn to SUT (time since start: %s)", time.Since(starttime))
@@ -150,7 +150,7 @@ func (f *TestSuite) SetupSuite() {
 	clientCreds := credentials.NewTLS(tlsconfig.MTLSClientConfig(f.x509source, f.x509bundle, tlsconfig.AuthorizeAny()))
 	clientCreds = grpcfd.TransportCredentials(clientCreds)
 	f.sutCC, err = grpc.DialContext(f.ctx,
-		regEndpoint.GetUrl(),
+		nseResp.GetNetworkServiceEndpoint().GetUrl(),
 		grpc.WithTransportCredentials(clientCreds),
 		grpc.WithBlock(),
 	)
