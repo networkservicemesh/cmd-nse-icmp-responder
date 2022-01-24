@@ -15,4 +15,5 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.0.0-alpha.4.0.20200528145730-dc11d0c74e85
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.42.0
+	gopkg.in/yaml.v2 v2.4.0
 )
