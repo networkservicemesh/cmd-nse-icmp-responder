@@ -1,6 +1,6 @@
-// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
 //
-// Copyright (c) 2020-2021 Cisco and/or its affiliates.
+// Copyright (c) 2020-2022 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -36,10 +36,11 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
+	registrybegin "github.com/networkservicemesh/sdk/pkg/registry/common/begin"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/expire"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	registryrecvfd "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
-	"github.com/networkservicemesh/sdk/pkg/registry/common/serialize"
+
 	"github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
@@ -109,7 +110,7 @@ func (f *TestSuite) SetupSuite() {
 	// ********************************************************************************
 	memrg := memory.NewNetworkServiceEndpointRegistryServer()
 	registryServer := registrychain.NewNetworkServiceEndpointRegistryServer(
-		serialize.NewNetworkServiceEndpointRegistryServer(),
+		registrybegin.NewNetworkServiceEndpointRegistryServer(),
 		expire.NewNetworkServiceEndpointRegistryServer(f.ctx, time.Minute),
 		registryrecvfd.NewNetworkServiceEndpointRegistryServer(),
 		memrg,
