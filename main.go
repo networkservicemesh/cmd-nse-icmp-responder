@@ -1,4 +1,5 @@
 // Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2022 Nordix and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -21,12 +22,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -59,6 +62,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/onidle"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/policyroute"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/connectioncontext/dnscontext"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
@@ -83,7 +87,7 @@ type Config struct {
 	Payload               string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels                map[string]string `default:"" desc:"Endpoint labels"`
 	DNSConfigs            dnstools.Decoder  `default:"[]" desc:"DNSConfigs represents array of DNSConfig in json format. See at model definition: https://github.com/networkservicemesh/api/blob/main/pkg/api/networkservice/connectioncontext.pb.go#L426-L435" split_words:"true"`
-	CidrPrefix            string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
+	CidrPrefix            []string          `default:"169.254.0.0/16" desc:"List of CIDR Prefix to assign IPv4 and IPv6 addresses from" split_words:"true"`
 	IdleTimeout           time.Duration     `default:"0" desc:"timeout for automatic shutdown when there were no requests for specified time. Set 0 to disable auto-shutdown." split_words:"true"`
 	RegisterService       bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
 	PBRConfigPath         string            `default:"/etc/policy-based-routing/config.yaml" desc:"Path to policy based routing config file" split_words:"true"`
@@ -186,10 +190,10 @@ func main() {
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 3: creating icmp server ipam")
 	// ********************************************************************************
-	_, ipnet, err := net.ParseCIDR(config.CidrPrefix)
-	if err != nil {
-		log.FromContext(ctx).Fatalf("error parsing cidr: %+v", err)
-	}
+
+	ipamChain := getIPAMChain(ctx, config.CidrPrefix)
+
+	log.FromContext(ctx).Infof("network prefixes parsed successfully")
 
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
@@ -203,7 +207,7 @@ func main() {
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
-			point2pointipam.NewServer(ipnet),
+			ipamChain,
 			policyroute.NewServer(newPolicyRoutesGetter(ctx, config.PBRConfigPath).Get),
 			recvfd.NewServer(),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
@@ -278,15 +282,7 @@ func main() {
 			registrysendfd.NewNetworkServiceEndpointRegistryClient(),
 		),
 	)
-	nse := &registryapi.NetworkServiceEndpoint{
-		Name:                 config.Name,
-		NetworkServiceNames:  config.ServiceNames,
-		NetworkServiceLabels: make(map[string]*registryapi.NetworkServiceLabels),
-		Url:                  listenOn.String(),
-	}
-	for _, serviceName := range config.ServiceNames {
-		nse.NetworkServiceLabels[serviceName] = &registryapi.NetworkServiceLabels{Labels: config.Labels}
-	}
+	nse := getNseEndpoint(config, listenOn)
 	nse, err = nseRegistryClient.Register(ctx, nse)
 	logrus.Infof("nse: %+v", nse)
 
@@ -300,6 +296,19 @@ func main() {
 
 	// wait for server to exit
 	<-ctx.Done()
+}
+
+func getNseEndpoint(config *Config, listenOn fmt.Stringer) *registryapi.NetworkServiceEndpoint {
+	nse := &registryapi.NetworkServiceEndpoint{
+		Name:                 config.Name,
+		NetworkServiceNames:  config.ServiceNames,
+		NetworkServiceLabels: make(map[string]*registryapi.NetworkServiceLabels),
+		Url:                  listenOn.String(),
+	}
+	for _, serviceName := range config.ServiceNames {
+		nse.NetworkServiceLabels[serviceName] = &registryapi.NetworkServiceLabels{Labels: config.Labels}
+	}
+	return nse
 }
 
 func getSriovTokenServerChainElement(ctx context.Context) (tokenServer networkservice.NetworkServiceServer) {
@@ -375,4 +384,17 @@ func (p *policyRoutesGetter) Get() []*networkservice.PolicyRoute {
 type policyRoutesGetter struct {
 	ctx          context.Context
 	policyRoutes atomic.Value
+}
+
+func getIPAMChain(ctx context.Context, cIDRs []string) networkservice.NetworkServiceServer {
+	var ipamchain []networkservice.NetworkServiceServer
+	for _, cidr := range cIDRs {
+		var parseErr error
+		_, ipNet, parseErr := net.ParseCIDR(strings.TrimSpace(cidr))
+		if parseErr != nil {
+			log.FromContext(ctx).Fatalf("Could not parse CIDR %s; %+v", cidr, parseErr)
+		}
+		ipamchain = append(ipamchain, point2pointipam.NewServer(ipNet))
+	}
+	return chain.NewNetworkServiceServer(ipamchain...)
 }
