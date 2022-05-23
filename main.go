@@ -134,7 +134,6 @@ func main() {
 
 	// enumerating phases
 	log.FromContext(ctx).Infof("there are 6 phases which will be executed followed by a success message:")
-	log.FromContext(ctx).Infof("the phases include:")
 	log.FromContext(ctx).Infof("1: get config from environment")
 	log.FromContext(ctx).Infof("2: retrieve spiffe svid")
 	log.FromContext(ctx).Infof("3: create icmp server ipam")
