@@ -174,12 +174,11 @@ github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OS
 github.com/nats-io/stan.go v0.10.2/go.mod h1:vo2ax8K2IxaR3JtEMLZRFKIdoK/3o1/PKueapB7ezX0=
 github.com/networkservicemesh/api v1.3.2-0.20220516230921-edaa6f46d6ab h1:hV6T7Kvze0qQphqi6g5ZKFoJ0m08OKdWETUINo3tuaA=
 github.com/networkservicemesh/api v1.3.2-0.20220516230921-edaa6f46d6ab/go.mod h1:hOF2844BSstH1311oDMDgqqXS+kdc77htZNPRKl9mf8=
-github.com/networkservicemesh/sdk v0.5.1-0.20220517020800-1955d6165f5f/go.mod h1:Wj9RnSFeFBHWlJGOrqgnAg6AWbaQud9XVKxByh5IS/A=
-github.com/networkservicemesh/sdk v0.5.1-0.20220518154856-dd9b496ef8a4 h1:yUxMot3D7PeRenrd+Bblz84eH4l4PsmD3X682oG4L/4=
-github.com/networkservicemesh/sdk v0.5.1-0.20220518154856-dd9b496ef8a4/go.mod h1:Wj9RnSFeFBHWlJGOrqgnAg6AWbaQud9XVKxByh5IS/A=
-github.com/networkservicemesh/sdk-kernel v0.0.0-20220517021108-8a05a87f1545/go.mod h1:XWr+GRikueZo3rMO4wuQ10W3PPJEonm0zVa2XR9iQ4c=
-github.com/networkservicemesh/sdk-sriov v0.0.0-20220517021452-65d614fd2999 h1:LKAEEju3ILYwFC7TfPk/q1AjvX0n2fOtymU7DPk04Uc=
-github.com/networkservicemesh/sdk-sriov v0.0.0-20220517021452-65d614fd2999/go.mod h1:CkvB3yoVlF4MKv1V7gMukNpJWxwSoGNpWs4E/bDz/Qk=
+github.com/networkservicemesh/sdk v0.5.1-0.20220523105313-5b89612944b7 h1:oxg2tJ9AWsCgHqoyJZdnGVP5m489z47E/TUSUclRCMk=
+github.com/networkservicemesh/sdk v0.5.1-0.20220523105313-5b89612944b7/go.mod h1:Wj9RnSFeFBHWlJGOrqgnAg6AWbaQud9XVKxByh5IS/A=
+github.com/networkservicemesh/sdk-kernel v0.0.0-20220523105719-9c2c580a45af/go.mod h1:N4oyaPjjaiNB7C/qhydbNaejKXhsWGIgtz/82Xsiu+g=
+github.com/networkservicemesh/sdk-sriov v0.0.0-20220523110248-971212ed518a h1:CNBIvqsgXstdOjC1rOQZkWac1iM+CfVvMwDRuoI2Hv0=
+github.com/networkservicemesh/sdk-sriov v0.0.0-20220523110248-971212ed518a/go.mod h1:01kef6S0pPN0/cRxlgPhyURPHxJRk1thbClVs+asuHg=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
 github.com/olekukonko/tablewriter v0.0.1/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=
