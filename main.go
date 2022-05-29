@@ -22,6 +22,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -187,6 +188,11 @@ func main() {
 	}
 	log.FromContext(ctx).Infof("SVID: %q", svid.ID)
 
+	tlsClientConfig := tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny())
+	tlsClientConfig.MinVersion = tls.VersionTLS12
+	tlsServerConfig := tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny())
+	tlsServerConfig.MinVersion = tls.VersionTLS12
+
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 3: creating icmp server ipam")
 	// ********************************************************************************
@@ -227,7 +233,7 @@ func main() {
 		grpc.Creds(
 			grpcfd.TransportCredentials(
 				credentials.NewTLS(
-					tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny()),
+					tlsServerConfig,
 				),
 			),
 		),
@@ -254,7 +260,7 @@ func main() {
 		grpc.WithTransportCredentials(
 			grpcfd.TransportCredentials(
 				credentials.NewTLS(
-					tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()),
+					tlsClientConfig,
 				),
 			),
 		),
