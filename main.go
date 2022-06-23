@@ -296,7 +296,6 @@ func main() {
 	nse, err = nseRegistryClient.Register(ctx, nse)
 	logrus.Infof("nse: %+v", nse)
 
-	logrus.Info("MY_INFO")
 	if err != nil {
 		log.FromContext(ctx).Fatalf("unable to register nse %+v", err)
 	}
