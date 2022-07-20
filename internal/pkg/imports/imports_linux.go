@@ -37,7 +37,6 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/debug"
-	_ "github.com/networkservicemesh/sdk/pkg/tools/dnscontext"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/fs"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log"
