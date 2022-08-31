@@ -706,10 +706,10 @@ github.com/ncw/swift v1.0.47/go.mod h1:23YIA4yWVnGwv2dQlN4bB7egfYX6YLn0Yo/S6zZO/
 github.com/networkplumbing/go-nft v0.2.0/go.mod h1:HnnM+tYvlGAsMU7yoYwXEVLLiDW9gdMmb5HoGcwpuQs=
 github.com/networkservicemesh/api v1.4.1-0.20220711153918-a59689088578 h1:2MZD6SGFULqTgMKA8BFy7F+ldRErAyxsWht7oCwCVRM=
 github.com/networkservicemesh/api v1.4.1-0.20220711153918-a59689088578/go.mod h1:hOF2844BSstH1311oDMDgqqXS+kdc77htZNPRKl9mf8=
-github.com/networkservicemesh/sdk v0.5.1-0.20220825014614-dacfc9890c07 h1:wr3mZgu0tCWObI6ULU3sn733/RWQWUG31nHAp2fibzM=
-github.com/networkservicemesh/sdk v0.5.1-0.20220825014614-dacfc9890c07/go.mod h1:ic2ei1BweJHofQ2Gz1gMBV9cJwBhvkvpwCfGge/pLY0=
-github.com/networkservicemesh/sdk-sriov v0.0.0-20220825015442-a1564acd4a60 h1:yZB5ki45fW4ub/9AmAOiOgQij4tMsvOHroHZJ7Pkbrc=
-github.com/networkservicemesh/sdk-sriov v0.0.0-20220825015442-a1564acd4a60/go.mod h1:oa+SqRy9rCfQj7ZekeDjCGOqyObp23gWAFTm4PPlE1g=
+github.com/networkservicemesh/sdk v0.5.1-0.20220831094238-ed5cc972107d h1:BdHd5I8GMDyGmI0rVs2/uIa6uHuWFefLw6MQph5Fk4s=
+github.com/networkservicemesh/sdk v0.5.1-0.20220831094238-ed5cc972107d/go.mod h1:ic2ei1BweJHofQ2Gz1gMBV9cJwBhvkvpwCfGge/pLY0=
+github.com/networkservicemesh/sdk-sriov v0.0.0-20220831095420-02db1b0435f8 h1:S9J8rugiZtCSeXpA4t5euwBFd//TcIA37ucLb/nkLvk=
+github.com/networkservicemesh/sdk-sriov v0.0.0-20220831095420-02db1b0435f8/go.mod h1:Y1l9L1xkD5ex5FmBPyNqSQ8UrmXX4ti6DGyyEE/mUwc=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
