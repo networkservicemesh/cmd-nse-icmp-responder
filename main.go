@@ -30,7 +30,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -68,6 +67,7 @@ import (
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
 	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
+	"github.com/networkservicemesh/sdk/pkg/tools/cidr"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/dnsconfig"
 	"github.com/networkservicemesh/sdk/pkg/tools/fs"
@@ -89,7 +89,7 @@ type Config struct {
 	Payload               string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels                map[string]string `default:"" desc:"Endpoint labels"`
 	DNSConfigs            dnsconfig.Decoder `default:"[]" desc:"DNSConfigs represents array of DNSConfig in json format. See at model definition: https://github.com/networkservicemesh/api/blob/main/pkg/api/networkservice/connectioncontext.pb.go#L426-L435" split_words:"true"`
-	CidrPrefix            []string          `default:"169.254.0.0/16" desc:"List of CIDR Prefix to assign IPv4 and IPv6 addresses from" split_words:"true"`
+	CidrPrefix            cidr.Groups       `default:"169.254.0.0/16" desc:"List of CIDR Prefix to assign IPv4 and IPv6 addresses from" split_words:"true"`
 	IdleTimeout           time.Duration     `default:"0" desc:"timeout for automatic shutdown when there were no requests for specified time. Set 0 to disable auto-shutdown." split_words:"true"`
 	RegisterService       bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
 	PBRConfigPath         string            `default:"/etc/policy-based-routing/config.yaml" desc:"Path to policy based routing config file" split_words:"true"`
@@ -198,7 +198,7 @@ func main() {
 	log.FromContext(ctx).Infof("executing phase 3: creating icmp server ipam")
 	// ********************************************************************************
 
-	ipamChain := getIPAMChain(ctx, config.CidrPrefix)
+	ipamChain := getIPAMChain(config.CidrPrefix)
 
 	log.FromContext(ctx).Infof("network prefixes parsed successfully")
 
@@ -396,15 +396,10 @@ type policyRoutesGetter struct {
 	policyRoutes atomic.Value
 }
 
-func getIPAMChain(ctx context.Context, cIDRs []string) networkservice.NetworkServiceServer {
+func getIPAMChain(cIDRGroups [][]*net.IPNet) networkservice.NetworkServiceServer {
 	var ipamchain []networkservice.NetworkServiceServer
-	for _, cidr := range cIDRs {
-		var parseErr error
-		_, ipNet, parseErr := net.ParseCIDR(strings.TrimSpace(cidr))
-		if parseErr != nil {
-			log.FromContext(ctx).Fatalf("Could not parse CIDR %s; %+v", cidr, parseErr)
-		}
-		ipamchain = append(ipamchain, point2pointipam.NewServer(ipNet))
+	for _, cidrGroup := range cIDRGroups {
+		ipamchain = append(ipamchain, point2pointipam.NewServer(cidrGroup...))
 	}
 	return chain.NewNetworkServiceServer(ipamchain...)
 }
