@@ -7,9 +7,9 @@ require (
 	github.com/edwarnicke/exechelper v1.0.2
 	github.com/edwarnicke/grpcfd v1.1.2
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/networkservicemesh/api v1.6.2-0.20221108105251-f71f283feaa5
-	github.com/networkservicemesh/sdk v0.5.1-0.20221121202637-1d79bf8c68cd
-	github.com/networkservicemesh/sdk-sriov v0.0.0-20221121204559-c4f104b19b9d
+	github.com/networkservicemesh/api v1.6.2-0.20221123101008-30ff0ca88ee8
+	github.com/networkservicemesh/sdk v0.5.1-0.20221124104929-d83bdbd65e5a
+	github.com/networkservicemesh/sdk-sriov v0.0.0-20221124105939-f2a9691542f3
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0
