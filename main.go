@@ -50,7 +50,7 @@ import (
 	kernelmech "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/noop"
 	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/sdk-sriov/pkg/networkservice/common/token"
+	sriovtoken "github.com/networkservicemesh/sdk-sriov/pkg/networkservice/common/token"
 	"github.com/networkservicemesh/sdk-sriov/pkg/tools/tokens"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
@@ -65,6 +65,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
+	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
 	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/tools/cidr"
@@ -76,6 +77,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
 	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
 )
 
@@ -257,7 +259,9 @@ func main() {
 	clientOptions := append(
 		tracing.WithTracingDial(),
 		grpc.WithBlock(),
-		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
+		grpc.WithDefaultCallOptions(
+			grpc.WaitForReady(true),
+			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime)))),
 		grpc.WithTransportCredentials(
 			grpcfd.TransportCredentials(
 				credentials.NewTLS(
@@ -265,13 +269,16 @@ func main() {
 				),
 			),
 		),
+		grpcfd.WithChainStreamInterceptor(),
+		grpcfd.WithChainUnaryInterceptor(),
 	)
 
 	if config.RegisterService {
 		for _, serviceName := range config.ServiceNames {
 			nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx,
 				registryclient.WithClientURL(&config.ConnectTo),
-				registryclient.WithDialOptions(clientOptions...))
+				registryclient.WithDialOptions(clientOptions...),
+				registryclient.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient()))
 			_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
 				Name:    serviceName,
 				Payload: config.Payload,
@@ -291,6 +298,7 @@ func main() {
 			clientinfo.NewNetworkServiceEndpointRegistryClient(),
 			registrysendfd.NewNetworkServiceEndpointRegistryClient(),
 		),
+		registryclient.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient()),
 	)
 	nse := getNseEndpoint(config, listenOn)
 	nse, err = nseRegistryClient.Register(ctx, nse)
@@ -331,7 +339,7 @@ func getSriovTokenServerChainElement(ctx context.Context) (tokenServer networkse
 		for tokenKey = range sriovTokens {
 			break
 		}
-		tokenServer = token.NewServer(tokenKey)
+		tokenServer = sriovtoken.NewServer(tokenKey)
 	default:
 		log.FromContext(ctx).Fatalf("endpoint must be configured with none or only one sriov resource")
 	}
