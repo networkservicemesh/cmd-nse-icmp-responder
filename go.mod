@@ -18,7 +18,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-// replace github.com/networkservicemesh/sdk => github.com/NikitaSkrynnik/sdk v0.5.1-0.20221207105901-089c3cf10028
+replace github.com/networkservicemesh/sdk => github.com/NikitaSkrynnik/sdk v0.5.1-0.20221207112256-2a2f4c014589
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
