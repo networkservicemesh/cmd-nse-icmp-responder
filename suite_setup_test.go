@@ -99,6 +99,7 @@ func (f *TestSuite) SetupSuite() {
 	// ********************************************************************************
 	log.FromContext(f.ctx).Infof("Running system under test (SUT) (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
+	os.Setenv("NSM_LOG_LEVEL", "TRACE")
 	cmdStr := "nse-icmp-responder"
 	f.sutErrCh = exechelper.Start(cmdStr,
 		exechelper.WithContext(f.ctx),
