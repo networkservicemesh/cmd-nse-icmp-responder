@@ -36,15 +36,20 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	registrybegin "github.com/networkservicemesh/sdk/pkg/registry/common/begin"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/expire"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/grpcmetadata"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	registryrecvfd "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/updatepath"
 
 	"github.com/networkservicemesh/sdk/pkg/registry/core/adapters"
 	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/spire"
 )
 
@@ -110,6 +115,7 @@ func (f *TestSuite) SetupSuite() {
 	// ********************************************************************************
 	memrg := memory.NewNetworkServiceEndpointRegistryServer()
 	registryServer := registrychain.NewNetworkServiceEndpointRegistryServer(
+		grpcmetadata.NewNetworkServiceEndpointRegistryServer(),
 		registrybegin.NewNetworkServiceEndpointRegistryServer(),
 		expire.NewNetworkServiceEndpointRegistryServer(f.ctx, time.Minute),
 		registryrecvfd.NewNetworkServiceEndpointRegistryServer(),
@@ -123,8 +129,14 @@ func (f *TestSuite) SetupSuite() {
 	serverCreds = grpcfd.TransportCredentials(serverCreds)
 	server := grpc.NewServer(grpc.Creds(serverCreds))
 
+	nsServer := next.NewNetworkServiceRegistryServer(
+		grpcmetadata.NewNetworkServiceRegistryServer(),
+		updatepath.NewNetworkServiceRegistryServer(spiffejwt.TokenGeneratorFunc(source, f.config.MaxTokenLifetime)),
+		authorize.NewNetworkServiceRegistryServer(),
+		memory.NewNetworkServiceRegistryServer())
+
 	registry.RegisterNetworkServiceEndpointRegistryServer(server, registryServer)
-	registry.RegisterNetworkServiceRegistryServer(server, memory.NewNetworkServiceRegistryServer())
+	registry.RegisterNetworkServiceRegistryServer(server, nsServer)
 	ctx, cancel := context.WithCancel(f.ctx)
 	defer func(cancel context.CancelFunc, serverErrCh <-chan error) {
 		cancel()

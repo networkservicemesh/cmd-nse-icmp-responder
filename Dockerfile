@@ -8,6 +8,7 @@ RUN wget --no-verbose --output-document=- https://github.com/spiffe/spire/releas
 FROM go as build
 WORKDIR /build
 COPY go.mod go.sum ./
+COPY ./local ./local
 COPY internal ./internal
 RUN go build ./internal/pkg/imports
 COPY . .
