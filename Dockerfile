@@ -8,13 +8,14 @@ RUN wget --no-verbose --output-document=- https://github.com/spiffe/spire/releas
 FROM go as build
 WORKDIR /build
 COPY go.mod go.sum ./
+COPY ./local ./local
 COPY internal ./internal
 RUN go build ./internal/pkg/imports
 COPY . .
 RUN go build -o /bin/nse-icmp-responder .
 
 FROM build as test
-CMD go test -test.v  -timeout 30s ./...
+CMD go test -test.v ./...
 
 FROM test as debug
 CMD dlv -l :40000 --headless=true --api-version=2 test -test.v ./...

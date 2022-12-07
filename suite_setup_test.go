@@ -36,6 +36,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	registrybegin "github.com/networkservicemesh/sdk/pkg/registry/common/begin"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/expire"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/grpcmetadata"
@@ -99,7 +100,6 @@ func (f *TestSuite) SetupSuite() {
 	// ********************************************************************************
 	log.FromContext(f.ctx).Infof("Running system under test (SUT) (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
-	os.Setenv("NSM_LOG_LEVEL", "TRACE")
 	cmdStr := "nse-icmp-responder"
 	f.sutErrCh = exechelper.Start(cmdStr,
 		exechelper.WithContext(f.ctx),
@@ -132,6 +132,7 @@ func (f *TestSuite) SetupSuite() {
 	nsServer := next.NewNetworkServiceRegistryServer(
 		grpcmetadata.NewNetworkServiceRegistryServer(),
 		updatepath.NewNetworkServiceRegistryServer(spiffejwt.TokenGeneratorFunc(source, f.config.MaxTokenLifetime)),
+		authorize.NewNetworkServiceRegistryServer(),
 		memory.NewNetworkServiceRegistryServer())
 
 	registry.RegisterNetworkServiceEndpointRegistryServer(server, registryServer)

@@ -8,7 +8,7 @@ require (
 	github.com/edwarnicke/grpcfd v1.1.2
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v1.6.2-0.20221205183940-84c7ff837cdd
-	github.com/networkservicemesh/sdk v0.5.1-0.20221205080356-9b1b773fbe13
+	github.com/networkservicemesh/sdk v0.5.1-0.20221207111307-2f2beee3ae60
 	github.com/networkservicemesh/sdk-sriov v0.0.0-20221124105939-f2a9691542f3
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
@@ -17,8 +17,6 @@ require (
 	google.golang.org/grpc v1.49.0
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace github.com/networkservicemesh/sdk => github.com/NikitaSkrynnik/sdk v0.5.1-0.20221207112752-46649033018e
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
