@@ -34,8 +34,6 @@ cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/NikitaSkrynnik/sdk v0.5.1-0.20221207105901-089c3cf10028 h1:h2DwFxX2LSMougSTDqRGyZmqg0kxLIO3oihpTDp0lgA=
-github.com/NikitaSkrynnik/sdk v0.5.1-0.20221207105901-089c3cf10028/go.mod h1:zEYFbCVXGlTT5f0x6sx8XtL2GazkYBpCoEpooxkz2vE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.8 h1:31czK/TI9sNkxIKfaUfGlU47BAxQ0ztGgd9vPyqimf8=
 github.com/OneOfOne/xxhash v1.2.8/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
@@ -198,6 +196,8 @@ github.com/miekg/dns v1.1.50 h1:DQUfb9uc6smULcREF09Uc+/Gd46YWqJd5DbpPE9xkcA=
 github.com/miekg/dns v1.1.50/go.mod h1:e3IlAVfNqAllflbibAZEWOXOQ+Ynzk/dDozDxY7XnME=
 github.com/networkservicemesh/api v1.6.2-0.20221205183940-84c7ff837cdd h1:26HR90HrJFZHIPPP3SCLGNRpPCMFoEnSSZfhHH8MPSo=
 github.com/networkservicemesh/api v1.6.2-0.20221205183940-84c7ff837cdd/go.mod h1:hOF2844BSstH1311oDMDgqqXS+kdc77htZNPRKl9mf8=
+github.com/networkservicemesh/sdk v0.5.1-0.20221205080356-9b1b773fbe13 h1:3iLQtkr1VoEwzDK2LemlTDtIGe8nyroDKD86FOtreYc=
+github.com/networkservicemesh/sdk v0.5.1-0.20221205080356-9b1b773fbe13/go.mod h1:KlA3LQ3lLDnV9Y1C3jOTX3GeOXdmk2oL6oPYz2slA88=
 github.com/networkservicemesh/sdk-sriov v0.0.0-20221124105939-f2a9691542f3 h1:2ivLUrsXLfZLcr//HfBxHm+sXXpjBJ8aIBWY73dQZSA=
 github.com/networkservicemesh/sdk-sriov v0.0.0-20221124105939-f2a9691542f3/go.mod h1:cIDCJaPVogXlMjtpN4LIn/7sbUkA0ygiwQ7/scZ6pwQ=
 github.com/open-policy-agent/opa v0.44.0 h1:sEZthsrWBqIN+ShTMJ0Hcz6a3GkYsY4FaB2S/ou2hZk=
