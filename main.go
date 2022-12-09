@@ -24,7 +24,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -243,7 +242,7 @@ func main() {
 	)
 	server := grpc.NewServer(options...)
 	responderEndpoint.Register(server)
-	tmpDir, err := ioutil.TempDir("", config.Name)
+	tmpDir, err := os.MkdirTemp("", config.Name)
 	if err != nil {
 		logrus.Fatalf("error creating tmpDir %+v", err)
 	}
@@ -298,7 +297,7 @@ func main() {
 			clientinfo.NewNetworkServiceEndpointRegistryClient(),
 			registrysendfd.NewNetworkServiceEndpointRegistryClient(),
 		),
-		registryclient.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient()),
+		registryclient.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient()),
 	)
 	nse := getNseEndpoint(config, listenOn)
 	nse, err = nseRegistryClient.Register(ctx, nse)

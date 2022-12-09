@@ -117,6 +117,8 @@ func (f *TestSuite) SetupSuite() {
 	registryServer := registrychain.NewNetworkServiceEndpointRegistryServer(
 		grpcmetadata.NewNetworkServiceEndpointRegistryServer(),
 		registrybegin.NewNetworkServiceEndpointRegistryServer(),
+		updatepath.NewNetworkServiceEndpointRegistryServer(spiffejwt.TokenGeneratorFunc(source, f.config.MaxTokenLifetime)),
+		authorize.NewNetworkServiceEndpointRegistryServer(),
 		expire.NewNetworkServiceEndpointRegistryServer(f.ctx, time.Minute),
 		registryrecvfd.NewNetworkServiceEndpointRegistryServer(),
 		memrg,
