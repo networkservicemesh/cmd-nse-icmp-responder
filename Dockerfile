@@ -13,6 +13,7 @@ COPY internal ./internal
 RUN go build ./internal/pkg/imports
 COPY . .
 RUN go build -o /bin/nse-icmp-responder .
+ENTRYPOINT [ "tail", "-f", "/dev/null" ]
 
 FROM build as test
 CMD go test -test.v ./...
