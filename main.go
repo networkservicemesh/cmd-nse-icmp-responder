@@ -1,5 +1,5 @@
-// Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
-// Copyright (c) 2021-2022 Nordix and/or its affiliates.
+// Copyright (c) 2020-2023 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2023 Nordix and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -24,7 +24,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net"
 	"net/url"
 	"os"
 	"os/signal"
@@ -61,8 +60,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/onidle"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/policyroute"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/connectioncontext/dnscontext"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/groupipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
@@ -200,7 +198,7 @@ func main() {
 	log.FromContext(ctx).Infof("executing phase 3: creating icmp server ipam")
 	// ********************************************************************************
 
-	ipamChain := getIPAMChain(config.CidrPrefix)
+	ipamChain := groupipam.NewServer(config.CidrPrefix)
 
 	log.FromContext(ctx).Infof("network prefixes parsed successfully")
 
@@ -404,12 +402,4 @@ func (p *policyRoutesGetter) Get() []*networkservice.PolicyRoute {
 type policyRoutesGetter struct {
 	ctx          context.Context
 	policyRoutes atomic.Value
-}
-
-func getIPAMChain(cIDRGroups [][]*net.IPNet) networkservice.NetworkServiceServer {
-	var ipamchain []networkservice.NetworkServiceServer
-	for _, cidrGroup := range cIDRGroups {
-		ipamchain = append(ipamchain, point2pointipam.NewServer(cidrGroup...))
-	}
-	return chain.NewNetworkServiceServer(ipamchain...)
 }
