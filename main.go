@@ -138,10 +138,9 @@ func main() {
 	log.FromContext(ctx).Infof("the phases include:")
 	log.FromContext(ctx).Infof("1: get config from environment")
 	log.FromContext(ctx).Infof("2: retrieve spiffe svid")
-	log.FromContext(ctx).Infof("3: create icmp server ipam")
-	log.FromContext(ctx).Infof("4: create icmp server nse")
-	log.FromContext(ctx).Infof("5: create grpc and mount nse")
-	log.FromContext(ctx).Infof("6: register nse with nsm")
+	log.FromContext(ctx).Infof("3: create icmp server nse")
+	log.FromContext(ctx).Infof("4: create grpc and mount nse")
+	log.FromContext(ctx).Infof("5: register nse with nsm")
 	log.FromContext(ctx).Infof("a final success message with start time duration")
 
 	starttime := time.Now()
@@ -195,15 +194,7 @@ func main() {
 	tlsServerConfig.MinVersion = tls.VersionTLS12
 
 	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 3: creating icmp server ipam")
-	// ********************************************************************************
-
-	ipamChain := groupipam.NewServer(config.CidrPrefix)
-
-	log.FromContext(ctx).Infof("network prefixes parsed successfully")
-
-	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
+	log.FromContext(ctx).Infof("executing phase 3: create icmp-server network service endpoint")
 	// ********************************************************************************
 
 	tokenServer := getSriovTokenServerChainElement(ctx)
@@ -214,7 +205,7 @@ func main() {
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
-			ipamChain,
+			groupipam.NewServer(config.CidrPrefix),
 			policyroute.NewServer(newPolicyRoutesGetter(ctx, config.PBRConfigPath).Get),
 			recvfd.NewServer(),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
@@ -227,7 +218,7 @@ func main() {
 		),
 	)
 	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
+	log.FromContext(ctx).Infof("executing phase 4: create grpc server and register icmp-server")
 	// ********************************************************************************
 	options := append(
 		tracing.WithTracing(),
@@ -252,7 +243,7 @@ func main() {
 	log.FromContext(ctx).Infof("grpc server started")
 
 	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 6: register nse with nsm")
+	log.FromContext(ctx).Infof("executing phase 5: register nse with nsm")
 	// ********************************************************************************
 	clientOptions := append(
 		tracing.WithTracingDial(),
