@@ -54,7 +54,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/kernel"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/recvfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/null"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/onidle"
@@ -208,7 +207,6 @@ func main() {
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
 			groupipam.NewServer(config.CidrPrefix),
 			policyroute.NewServer(newPolicyRoutesGetter(ctx, config.PBRConfigPath).Get),
-			recvfd.NewServer(),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				kernelmech.MECHANISM: kernel.NewServer(),
 				noop.MECHANISM:       null.NewServer(),
