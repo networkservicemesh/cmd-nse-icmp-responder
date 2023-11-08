@@ -91,6 +91,7 @@ type Config struct {
 	CidrPrefix             cidr.Groups       `default:"169.254.0.0/16" desc:"List of CIDR Prefix to assign IPv4 and IPv6 addresses from" split_words:"true"`
 	IdleTimeout            time.Duration     `default:"0" desc:"timeout for automatic shutdown when there were no requests for specified time. Set 0 to disable auto-shutdown." split_words:"true"`
 	RegisterService        bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
+	UnregisterItself       bool              `default:"false" desc:"if true then NSE unregister itself when it completes working" split_words:"true"`
 	PBRConfigPath          string            `default:"/etc/policy-based-routing/config.yaml" desc:"Path to policy based routing config file" split_words:"true"`
 	LogLevel               string            `default:"INFO" desc:"Log level" split_words:"true"`
 	OpenTelemetryEndpoint  string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
@@ -112,7 +113,10 @@ func main() {
 	// ********************************************************************************
 	// setup context to catch signals
 	// ********************************************************************************
-	ctx, cancel := signal.NotifyContext(
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	signalCtx, _ := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
 		// More Linux signals here
@@ -120,7 +124,6 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 	)
-	defer cancel()
 
 	// ********************************************************************************
 	// setup logging
@@ -298,12 +301,20 @@ func main() {
 		log.FromContext(ctx).Fatalf("unable to register nse %+v", err)
 	}
 
+	if config.UnregisterItself {
+		defer func() {
+			_, err = nseRegistryClient.Unregister(context.Background(), nse)
+			if err != nil {
+				log.FromContext(ctx).Errorf("nse failed to unregister itself on termination: %s", err.Error())
+			}
+		}()
+	}
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("startup completed in %v", time.Since(starttime))
 	// ********************************************************************************
 
 	// wait for server to exit
-	<-ctx.Done()
+	<-signalCtx.Done()
 }
 
 func getNseEndpoint(config *Config, listenOn fmt.Stringer) *registryapi.NetworkServiceEndpoint {
