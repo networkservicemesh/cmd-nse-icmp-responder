@@ -196,7 +196,7 @@ func runSpire(ctx context.Context) <-chan error {
 	}
 	spireErrCh := spire.Start(
 		spire.WithContext(ctx),
-		spire.WithEntry("spiffe://example.org/nse-icmp-responder", "unix:path:/bin/nse-icmp-responder"),
+		spire.WithEntry("spiffe://example.org/nse-icmp-responder", "unix:path:/usr/bin/nse-icmp-responder"),
 		spire.WithEntry(fmt.Sprintf("spiffe://example.org/%s", filepath.Base(executable)),
 			fmt.Sprintf("unix:path:%s", executable),
 		),
