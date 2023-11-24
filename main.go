@@ -207,7 +207,7 @@ func main() {
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
 			groupipam.NewServer(config.CidrPrefix),
 			policyroute.NewServer(newPolicyRoutesGetter(ctx, config.PBRConfigPath).Get),
-			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
+			mechanisms.NewServerWithMetrics(map[string]networkservice.NetworkServiceServer{
 				kernelmech.MECHANISM: kernel.NewServer(),
 				noop.MECHANISM:       null.NewServer(),
 			}),
