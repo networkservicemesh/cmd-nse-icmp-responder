@@ -117,7 +117,7 @@ func main() {
 	defer cancel()
 
 	signalCtx, _ := signal.NotifyContext(
-		context.Background(),
+		ctx,
 		os.Interrupt,
 		// More Linux signals here
 		syscall.SIGHUP,
