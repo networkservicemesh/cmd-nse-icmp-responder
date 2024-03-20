@@ -12,14 +12,15 @@ require (
 	github.com/networkservicemesh/sdk-sriov v0.0.0-20240319091109-93b591c8e299
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spiffe/go-spiffe/v2 v2.0.0
+	github.com/spiffe/go-spiffe/v2 v2.1.7
 	github.com/stretchr/testify v1.8.4
-	google.golang.org/grpc v1.59.0
+	google.golang.org/grpc v1.60.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -30,6 +31,7 @@ require (
 	github.com/edwarnicke/serialize v1.0.7 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
@@ -52,7 +54,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/yashtewari/glob-intersection v0.1.0 // indirect
-	github.com/zeebo/errs v1.2.2 // indirect
+	github.com/zeebo/errs v1.3.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.0 // indirect
 	go.opentelemetry.io/otel v1.20.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.43.0 // indirect
@@ -74,6 +76,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20231012201019-e917dd12ba7a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
-	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
