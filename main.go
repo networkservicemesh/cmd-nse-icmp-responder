@@ -94,7 +94,7 @@ type Config struct {
 	UnregisterItself       bool              `default:"false" desc:"if true then NSE unregister itself when it completes working" split_words:"true"`
 	PBRConfigPath          string            `default:"/etc/policy-based-routing/config.yaml" desc:"Path to policy based routing config file" split_words:"true"`
 	LogLevel               string            `default:"INFO" desc:"Log level" split_words:"true"`
-	OpenTelemetryEndpoint  string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
+	OpenTelemetryEndpoint  string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint" split_words:"true"`
 	MetricsExportInterval  time.Duration     `default:"10s" desc:"interval between mertics exports" split_words:"true"`
 }
 
