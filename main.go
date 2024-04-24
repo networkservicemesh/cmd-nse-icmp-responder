@@ -1,5 +1,8 @@
 // Copyright (c) 2020-2023 Doc.ai and/or its affiliates.
+//
 // Copyright (c) 2021-2023 Nordix and/or its affiliates.
+//
+// Copyright (c) 2024 OpenInfra Foundation Europe. All rights reserved.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
