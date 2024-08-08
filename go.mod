@@ -8,8 +8,8 @@ require (
 	github.com/edwarnicke/grpcfd v1.1.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v1.13.1-0.20240424210452-d0df98851760
-	github.com/networkservicemesh/sdk v0.5.1-0.20240808100355-301631365421
-	github.com/networkservicemesh/sdk-sriov v0.0.0-20240808101119-8252927540c3
+	github.com/networkservicemesh/sdk v0.5.1-0.20240808113433-ce2c8f56bdd3
+	github.com/networkservicemesh/sdk-sriov v0.0.0-20240808114059-19b4478ca63e
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spiffe/go-spiffe/v2 v2.1.7
