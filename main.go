@@ -4,6 +4,8 @@
 //
 // Copyright (c) 2024 OpenInfra Foundation Europe. All rights reserved.
 //
+// Copyright (c) 2024 Pragmagic Inc. and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,6 +77,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
+	"github.com/networkservicemesh/sdk/pkg/tools/pprofutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
 	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
@@ -99,6 +102,8 @@ type Config struct {
 	LogLevel               string            `default:"INFO" desc:"Log level" split_words:"true"`
 	OpenTelemetryEndpoint  string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint" split_words:"true"`
 	MetricsExportInterval  time.Duration     `default:"10s" desc:"interval between mertics exports" split_words:"true"`
+	PprofEnabled           bool              `default:"false" desc:"is pprof enabled" split_words:"true"`
+	PprofListenOn          string            `default:"localhost:6060" desc:"pprof URL to ListenAndServe" split_words:"true"`
 }
 
 // Process prints and processes env to config
@@ -179,6 +184,13 @@ func main() {
 				log.FromContext(ctx).Error(err.Error())
 			}
 		}()
+	}
+
+	// ********************************************************************************
+	// Configure pprof
+	// ********************************************************************************
+	if config.PprofEnabled {
+		go pprofutils.ListenAndServe(ctx, config.PprofListenOn)
 	}
 
 	// ********************************************************************************
