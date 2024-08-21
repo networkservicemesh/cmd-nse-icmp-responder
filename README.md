@@ -25,6 +25,7 @@ docker build .
 * `NSM_CONNECT_TO`               - url to connect to (default: "unix:///var/lib/networkservicemesh/nsm.io.sock")
 * `NSM_MAX_TOKEN_LIFETIME`       - maximum lifetime of tokens (default: "10m")
 * `NSM_REGISTRY_CLIENT_POLICIES` - paths to files and directories that contain registry client policies (default: "etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/client/.*.rego")
+* `NSM_IPAM_POLICY`              - defines NSE's IPAM Policy. Possible values: default, strict
 * `NSM_SERVICE_NAMES`            - Name of provided services (default: "icmp-responder")
 * `NSM_PAYLOAD`                  - Name of provided service payload (default: "ETHERNET")
 * `NSM_LABELS`                   - Endpoint labels
