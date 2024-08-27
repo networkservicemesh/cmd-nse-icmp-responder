@@ -94,7 +94,7 @@ type Config struct {
 	ConnectTo              url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime       time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
 	RegistryClientPolicies []string          `default:"etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/client/.*.rego" desc:"paths to files and directories that contain registry client policies" split_words:"true"`
-	IPAMPolicy             ipamPolicy        `default:"default" desc:"defines NSE's IPAM Policy. Possible values: default, strict" split_words:"true"`
+	IPAMPolicy             ipamPolicyFunc    `default:"polite" desc:"defines NSE's IPAM Policy. Possible values: polite, strict. Polite policy accepts any addresses sent by client. Strict policy resets ip_context if any of the client's addresses doesn't match endpoint's CIDR." split_words:"true"`
 	ServiceNames           []string          `default:"icmp-responder" desc:"Name of provided services" split_words:"true"`
 	Payload                string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels                 map[string]string `default:"" desc:"Endpoint labels"`
@@ -111,28 +111,22 @@ type Config struct {
 	PprofListenOn          string            `default:"localhost:6060" desc:"pprof URL to ListenAndServe" split_words:"true"`
 }
 
-type ipamPolicy uint8
+type ipamPolicyFunc func(...*net.IPNet) networkservice.NetworkServiceServer
 
-// Decode takes a string IPAM Policy and returns the IPAM Policy constant.
-func (p *ipamPolicy) Decode(policy string) error {
+// Decode takes a string IPAM Policy and returns the IPAM Policy func
+func (f *ipamPolicyFunc) Decode(policy string) error {
 	switch strings.ToLower(policy) {
 	case "strict":
-		*p = strictIPAMPolicy
+		*f = func(prefixes ...*net.IPNet) networkservice.NetworkServiceServer {
+			return strictipam.NewServer(point2pointipam.NewServer, prefixes...)
+		}
 		return nil
-	case "default":
-		*p = defaultIPAMPolicy
+	case "polite":
+		*f = point2pointipam.NewServer
 		return nil
 	}
 	return errors.Errorf("not a valid IPAM Policy: %s", policy)
 }
-
-const (
-	// DefaultIPAMPolicy - uses the default point2point IPAM without any policies.
-	defaultIPAMPolicy ipamPolicy = iota
-	// StrictIPAMPolicy - uses a strictipam wrapper for the default point2point IPAM that
-	// resets connetion's ip_context if any of the addresses are invalid.
-	strictIPAMPolicy
-)
 
 // Process prints and processes env to config
 func (c *Config) Process() error {
@@ -245,19 +239,13 @@ func main() {
 
 	tokenServer := getSriovTokenServerChainElement(ctx)
 
-	ipamFunc := point2pointipam.NewServer
-	if config.IPAMPolicy == strictIPAMPolicy {
-		ipamFunc = func(prefixes ...*net.IPNet) networkservice.NetworkServiceServer {
-			return strictipam.NewServer(point2pointipam.NewServer, prefixes...)
-		}
-	}
 	responderEndpoint := endpoint.NewServer(ctx,
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
 		endpoint.WithName(config.Name),
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
-			groupipam.NewServer(config.CidrPrefix, groupipam.WithCustomIPAMServer(ipamFunc)),
+			groupipam.NewServer(config.CidrPrefix, groupipam.WithCustomIPAMServer(config.IPAMPolicy)),
 			policyroute.NewServer(newPolicyRoutesGetter(ctx, config.PBRConfigPath).Get),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				kernelmech.MECHANISM: kernel.NewServer(),
