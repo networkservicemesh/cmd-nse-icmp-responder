@@ -29,10 +29,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -65,6 +67,8 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/policyroute"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/connectioncontext/dnscontext"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/groupipam"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/strictipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
@@ -90,6 +94,7 @@ type Config struct {
 	ConnectTo              url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime       time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
 	RegistryClientPolicies []string          `default:"etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/client/.*.rego" desc:"paths to files and directories that contain registry client policies" split_words:"true"`
+	IPAMPolicy             ipamPolicyFunc    `default:"polite" desc:"defines NSE's IPAM Policy. Possible values: polite, strict. Polite policy accepts any addresses sent by client. Strict policy resets ip_context if any of the client's addresses doesn't match endpoint's CIDR." split_words:"true"`
 	ServiceNames           []string          `default:"icmp-responder" desc:"Name of provided services" split_words:"true"`
 	Payload                string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels                 map[string]string `default:"" desc:"Endpoint labels"`
@@ -104,6 +109,23 @@ type Config struct {
 	MetricsExportInterval  time.Duration     `default:"10s" desc:"interval between mertics exports" split_words:"true"`
 	PprofEnabled           bool              `default:"false" desc:"is pprof enabled" split_words:"true"`
 	PprofListenOn          string            `default:"localhost:6060" desc:"pprof URL to ListenAndServe" split_words:"true"`
+}
+
+type ipamPolicyFunc func(...*net.IPNet) networkservice.NetworkServiceServer
+
+// Decode takes a string IPAM Policy and returns the IPAM Policy func
+func (f *ipamPolicyFunc) Decode(policy string) error {
+	switch strings.ToLower(policy) {
+	case "strict":
+		*f = func(prefixes ...*net.IPNet) networkservice.NetworkServiceServer {
+			return strictipam.NewServer(point2pointipam.NewServer, prefixes...)
+		}
+		return nil
+	case "polite":
+		*f = point2pointipam.NewServer
+		return nil
+	}
+	return errors.Errorf("not a valid IPAM Policy: %s", policy)
 }
 
 // Process prints and processes env to config
@@ -223,7 +245,7 @@ func main() {
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
-			groupipam.NewServer(config.CidrPrefix),
+			groupipam.NewServer(config.CidrPrefix, groupipam.WithCustomIPAMServer(config.IPAMPolicy)),
 			policyroute.NewServer(newPolicyRoutesGetter(ctx, config.PBRConfigPath).Get),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				kernelmech.MECHANISM: kernel.NewServer(),
