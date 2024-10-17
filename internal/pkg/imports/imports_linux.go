@@ -70,6 +70,7 @@ import (
 	_ "os"
 	_ "os/signal"
 	_ "path/filepath"
+	_ "strings"
 	_ "sync/atomic"
 	_ "syscall"
 	_ "testing"
