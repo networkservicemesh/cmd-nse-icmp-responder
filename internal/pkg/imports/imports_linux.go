@@ -25,7 +25,6 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/policyroute"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/connectioncontext/dnscontext"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/ipam/groupipam"
-	_ "github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/ipam/strictipam"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"

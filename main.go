@@ -67,7 +67,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/policyroute"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/connectioncontext/dnscontext"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/groupipam"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/strictipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
@@ -111,21 +110,30 @@ type Config struct {
 	PprofListenOn          string            `default:"localhost:6060" desc:"pprof URL to ListenAndServe" split_words:"true"`
 }
 
-type ipamPolicyFunc func(...*net.IPNet) networkservice.NetworkServiceServer
+type ipamPolicyFunc func([][]*net.IPNet) networkservice.NetworkServiceServer
 
 // Decode takes a string IPAM Policy and returns the IPAM Policy func
 func (f *ipamPolicyFunc) Decode(policy string) error {
 	switch strings.ToLower(policy) {
 	case "strict":
-		*f = func(prefixes ...*net.IPNet) networkservice.NetworkServiceServer {
-			return strictipam.NewServer(point2pointipam.NewServer, prefixes...)
+		*f = func(cidrPrefix [][]*net.IPNet) networkservice.NetworkServiceServer {
+			var ipnetList []*net.IPNet
+			for _, group := range cidrPrefix {
+				ipnetList = append(ipnetList, group...)
+			}
+			return strictipam.NewServer(func(i ...*net.IPNet) networkservice.NetworkServiceServer {
+				return groupipam.NewServer(cidrPrefix)
+			}, ipnetList...)
 		}
 		return nil
 	case "polite":
-		*f = point2pointipam.NewServer
+		*f = func(cidrPrefix [][]*net.IPNet) networkservice.NetworkServiceServer {
+			return groupipam.NewServer(cidrPrefix)
+		}
 		return nil
+	default:
+		return errors.Errorf("not a valid IPAM Policy: %s", policy)
 	}
-	return errors.Errorf("not a valid IPAM Policy: %s", policy)
 }
 
 // Process prints and processes env to config
@@ -249,7 +257,7 @@ func main() {
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
 			onidle.NewServer(ctx, cancel, config.IdleTimeout),
-			groupipam.NewServer(config.CidrPrefix, groupipam.WithCustomIPAMServer(config.IPAMPolicy)),
+			config.IPAMPolicy(config.CidrPrefix),
 			policyroute.NewServer(newPolicyRoutesGetter(ctx, config.PBRConfigPath).Get),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				kernelmech.MECHANISM: kernel.NewServer(),
