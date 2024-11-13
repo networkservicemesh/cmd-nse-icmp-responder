@@ -121,6 +121,7 @@ func (f *ipamPolicyFunc) Decode(policy string) error {
 			for _, group := range cidrPrefix {
 				ipnetList = append(ipnetList, group...)
 			}
+			// nolint: revive
 			return strictipam.NewServer(func(i ...*net.IPNet) networkservice.NetworkServiceServer {
 				return groupipam.NewServer(cidrPrefix)
 			}, ipnetList...)
