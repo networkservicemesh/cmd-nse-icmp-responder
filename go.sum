@@ -113,8 +113,8 @@ github.com/networkservicemesh/api v1.15.0-rc.1.0.20250625083423-2e0c8496e4e3 h1:
 github.com/networkservicemesh/api v1.15.0-rc.1.0.20250625083423-2e0c8496e4e3/go.mod h1:AciGKdCuOxSBSch22q/jlPqwhLy5tU8B41cwqMb8MPI=
 github.com/networkservicemesh/sdk v0.5.1-0.20260407081414-9ac672ca128d h1:uDqLW3o41dDdOd1nyT08Mu860cwQr2pMoyFAwEbKlL8=
 github.com/networkservicemesh/sdk v0.5.1-0.20260407081414-9ac672ca128d/go.mod h1:VAFz8bh26wuHPP78OjtmlJuCmlfAeyWGGzTPnhLOxxc=
-github.com/networkservicemesh/sdk-sriov v0.0.0-20260407082104-8dcf72c1303f h1:q9+7OGGrTmu+sbbRlzIeAoKWpvKHIX4riUbR7bEyK1s=
-github.com/networkservicemesh/sdk-sriov v0.0.0-20260407082104-8dcf72c1303f/go.mod h1:bLCsRGOTyHsDsIa9AxDetW2CRV73vjLCVXJg3gNBEgM=
+github.com/networkservicemesh/sdk-sriov v0.0.0-20260817132431-fefd46d691ab h1:m7yJVMyg2gU0Um/FCtVCPnfoRR+OQLQPZFYDjIUAoJk=
+github.com/networkservicemesh/sdk-sriov v0.0.0-20260817132431-fefd46d691ab/go.mod h1:7L1wZVOvLqDdYJlQQsRo63xzbRB4NzDU0jgo5CS4KTc=
 github.com/open-policy-agent/opa v1.4.0 h1:IGO3xt5HhQKQq2axfa9memIFx5lCyaBlG+fXcgHpd3A=
 github.com/open-policy-agent/opa v1.4.0/go.mod h1:DNzZPKqKh4U0n0ANxcCVlw8lCSv2c+h5G/3QvSYdWZ8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
